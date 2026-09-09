@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>ELECTRIC SOUL β1.3.1</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05070c;color:#dffcff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;touch-action:none}
+  #wrap{position:fixed;inset:0;background:#05070c}
+  canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+  #hud{position:absolute;top:0;left:0;right:0;padding:12px 14px;display:flex;justify-content:space-between;pointer-events:none;text-shadow:0 0 8px #67e8ff}
+  #title{font-size:13px;letter-spacing:2px;font-weight:700}
+  #state{font-size:11px;opacity:.9}
+  #hint{position:absolute;left:50%;top:55px;transform:translateX(-50%);font-size:11px;text-align:center;opacity:.8;white-space:nowrap;pointer-events:none}
+  #touch{position:absolute;inset:0;pointer-events:none}
+  .pad{position:absolute;bottom:22px;width:64px;height:64px;border:2px solid #79dfff88;background:#07131bcc;color:#bdf7ff;display:flex;align-items:center;justify-content:center;font-size:24px;border-radius:12px;box-shadow:0 0 12px #00cfff33;pointer-events:auto;user-select:none}
+  .pad:active,.pad.on{background:#0d4050dd;box-shadow:0 0 18px #00d9ff99}
+  #left{left:20px} #right{left:168px}
+  #up{left:94px;bottom:96px} #down{left:94px}
+  #wireEnter{right:104px;font-size:11px;line-height:1.05;text-align:center} #action{right:20px}
+  #left,#right,#up,#down{width:64px;height:64px}
+  #msg{position:absolute;left:50%;bottom:108px;transform:translateX(-50%);padding:8px 12px;background:#061017dd;border:1px solid #65dcff77;font-size:11px;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap}
+  #start{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#10212c 0,#05070c 65%);z-index:5}
+  .panel{width:min(90vw,520px);padding:28px;text-align:center;border:1px solid #75e8ff66;background:#071018ee;box-shadow:0 0 40px #00bfff22}
+  .panel h1{font-size:28px;letter-spacing:5px;margin:0 0 8px}
+  .panel p{font-size:12px;line-height:1.8;color:#a9cbd0}
+  .beta{color:#75e8ff;font-size:10px;letter-spacing:3px}
+  #startBtn{margin-top:12px;padding:13px 24px;border:1px solid #75e8ff;background:#09202a;color:#dffcff;font:inherit;cursor:pointer}
+  #win{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:#02070add;z-index:4;text-align:center}
+  #win .panel{background:#06131a}
+  @media(min-width:800px){.pad{opacity:.55}}
+
+  #tutorialBubble{position:absolute;z-index:3;display:none;max-width:300px;padding:10px 12px;background:rgba(5,18,25,.95);border:1px solid #75e8ff99;border-radius:10px;box-shadow:0 0 18px #00cfff33;color:#dffcff;font-size:12px;line-height:1.55;text-align:left;pointer-events:none;transform:translateY(-4px)}
+  #tutorialTag{font-size:9px;letter-spacing:2px;color:#72eaff;margin-bottom:3px}
+  .bubbleTail{position:absolute;left:50%;bottom:-7px;width:12px;height:12px;background:rgba(5,18,25,.95);border-right:1px solid #75e8ff99;border-bottom:1px solid #75e8ff99;transform:translateX(-50%) rotate(45deg)}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="game"></canvas>
+<div id="hud"><div id="title">ELECTRIC SOUL // β1.3.1</div><div id="state">STATE: <span id="stateText">LIFE</span></div></div>
+<div id="hint">研究施設 N-07　—　電気生命体のコア反応を確認</div>
+<div id="msg"></div>
+<div id="tutorialBubble"><div id="tutorialTag">TUTORIAL</div><div id="tutorialText"></div><span class="bubbleTail"></span></div>
+
+<div id="touch">
+  <div class="pad" id="left">◀</div>
+  <div class="pad" id="up">▲</div>
+  <div class="pad" id="down">▼</div>
+  <div class="pad" id="right">▶</div>
+  <div class="pad" id="wireEnter">WIRE<br>ENTER</div>
+  <div class="pad" id="action">ACT</div>
+</div>
+
+<div id="start">
+  <div class="panel">
+    <div class="beta">PROTOTYPE BUILD</div>
+    <h1>ELECTRIC SOUL</h1>
+    <p>電気そのものから生まれた生命体として、<br>研究施設の電線を駆け、機械を乗っ取れ。</p>
+    <p>電線へ入る → 電流として移動 → ロボットへ侵入 → スイッチを操作 → ゴール</p>
+    <button id="startBtn">START β1.3.1</button>
+    <p style="font-size:10px">PC: ← → / A D　ジャンプ: Space　電線: W　分岐: ↑ ↓　乗っ取り/脱出: E</p>
+  </div>
+</div>
+
+<div id="win">
+  <div class="panel">
+    <div class="beta">FACILITY N-07 // CLEAR</div>
+    <h1>ACCESS GRANTED</h1>
+    <p>電気生命体は研究区画の奥へ到達した。</p>
+    <button id="restartBtn">もう一度遊ぶ</button>
+  </div>
+</div>
+</div>
+
+<script>
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,2);
+function resize(){W=innerWidth;H=innerHeight;canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}
+addEventListener('resize',resize);resize();
+
+const keys={left:false,right:false,up:false,down:false,action:false,wireEnter:false};
+const prev={up:false,down:false,action:false,wireEnter:false};
+const world={w:2500,h:720,cam:0};
+const player={x:110,y:510,w:22,h:25,vx:0,vy:0,onGround:false,state:'life',wireId:null,wireDist:0};
+const robot={x:1530,y:470,w:70,h:80,active:false,controlled:false,vx:0,vy:0,onGround:false};
+const switchObj={x:1830,y:470,w:30,h:30,on:false};
+const door={x:2140,y:320,w:32,h:210,open:false};
+const goal={x:2320,y:460,w:55,h:70};
+
+const wires=[
+ // 最初の電線は地面のすぐ上。ジャンプなしでそのまま入れる。
+ {id:0,pts:[[150,520],[420,520],[620,430],[850,430],[1040,500],[1300,500],[1530,520]]},
+ {id:1,pts:[[850,430],[850,180],[1160,180],[1370,260],[1530,520]]},
+ {id:2,pts:[[1160,180],[1160,80],[1750,80],[1830,210],[1830,440]]},
+ {id:3,pts:[[1370,260],[1450,180],[1650,180],[1830,210]]}
+];
+function prepareWires(){for(const w of wires){w.lens=[];w.total=0;for(let i=0;i<w.pts.length-1;i++){const a=w.pts[i],b=w.pts[i+1],len=Math.hypot(b[0]-a[0],b[1]-a[1]);w.lens.push(len);w.total+=len}}}
+prepareWires();
+
+let particles=[],sparks=[],t=0,started=false,won=false,msgTimer=0;
+let tutorialStep=0;
+const tutorialText=[
+ 'まずは右へ進もう。▶を押して、地面近くの電線まで移動しよう。',
+ '電線の近くまで来たよ。WIRE ENTERを押して、電線へ入ろう。',
+ '電流になった！◀▶で電線に沿って進もう。',
+ '電線の分岐点だ。▲▼でつながる電線へ乗り換えられる。',
+ 'このまま電線を進んでロボットの近くまで行こう。',
+ 'ロボットの近くでACTを押して、ロボットを乗っ取ろう。',
+ 'ロボットを操作してPOWER SWITCHへ。スイッチに近づけば作動する。',
+ 'ドアが開いた！ロボットから脱出して、▶でEXITへ向かおう。',
+ 'EXITまであと少し！'
+];
+function say(s){const e=document.getElementById('msg');e.textContent=s;e.style.opacity=1;msgTimer=2.2}
+function setTutorial(n){tutorialStep=Math.max(tutorialStep,n);updateTutorial()}
+function updateTutorial(){document.getElementById('tutorialText').textContent=tutorialText[tutorialStep]||''}
+function worldToScreenX(x){return x-world.cam}
+function updateTutorialBubble(){
+ const e=document.getElementById('tutorialBubble');
+ if(!started||won){e.style.display='none';return}
+ e.style.display='block';
+ let sx=worldToScreenX(player.state==='robot'?robot.x:player.x+player.w/2);
+ let sy=player.state==='robot'?robot.y:player.y;
+ sx=Math.max(12,Math.min(W-12,sx));
+ const bw=Math.min(300,W-24);
+ e.style.width=bw+'px';
+ e.style.left=Math.max(12,Math.min(W-bw-12,sx-bw/2))+'px';
+ e.style.top=Math.max(68,Math.min(H-180,sy-82))+'px';
+}
+function groundY(){return Math.min(560,H-150)}
+function rect(x,y,w,h,fill,stroke){ctx.fillStyle=fill;ctx.fillRect(x-world.cam,y,w,h);if(stroke){ctx.strokeStyle=stroke;ctx.strokeRect(x-world.cam+.5,y+.5,w-1,h-1)}}
+function line(points,style,width=3){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p[0]-world.cam,p[1]):ctx.moveTo(p[0]-world.cam,p[1]));ctx.strokeStyle=style;ctx.lineWidth=width;ctx.stroke()}
+function distToSegment(px,py,x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1,l=dx*dx+dy*dy;let q=l?((px-x1)*dx+(py-y1)*dy)/l:0;q=Math.max(0,Math.min(1,q));const x=x1+q*dx,y=y1+q*dy;return Math.hypot(px-x,py-y)}
+function nearestWire(px,py){let best=null,bd=999;for(const w of wires)for(let i=0;i<w.pts.length-1;i++){const d=distToSegment(px,py,...w.pts[i],...w.pts[i+1]);if(d<bd){bd=d;best={wire:w,i}}}return bd<48?best:null}
+function distAtPoint(w,idx){let d=0;for(let i=0;i<idx;i++)d+=w.lens[i];return d}
+function pointAtDistance(w,d){d=Math.max(0,Math.min(w.total,d));let acc=0;for(let i=0;i<w.lens.length;i++){const len=w.lens[i];if(d<=acc+len||i===w.lens.length-1){const f=len?Math.max(0,Math.min(1,(d-acc)/len)):0;const a=w.pts[i],b=w.pts[i+1];return {x:a[0]+(b[0]-a[0])*f,y:a[1]+(b[1]-a[1])*f,seg:i,f};}acc+=len}return {x:w.pts[w.pts.length-1][0],y:w.pts[w.pts.length-1][1],seg:w.pts.length-2,f:1}}
+function closestDistanceOnWire(w,px,py){let best={d:99999,dist:0};for(let i=0;i<w.pts.length-1;i++){const a=w.pts[i],b=w.pts[i+1],dx=b[0]-a[0],dy=b[1]-a[1],len2=dx*dx+dy*dy;let f=len2?((px-a[0])*dx+(py-a[1])*dy)/len2:0;f=Math.max(0,Math.min(1,f));const x=a[0]+dx*f,y=a[1]+dy*f,d=Math.hypot(px-x,py-y);if(d<best.d)best={d,dist:distAtPoint(w,i)+Math.sqrt(len2)*f};}return best}
+function enterWire(){
+ if(player.state!=='life')return;
+ const n=nearestWire(player.x+player.w/2,player.y+player.h/2);
+ if(!n||n.dist>55){say('電線の近くまで移動してね');return}
+ const c=closestDistanceOnWire(n.wire,player.x+player.w/2,player.y+player.h/2);
+ player.state='wire';player.wireId=n.wire.id;player.wireDist=c.dist;player.vx=0;player.vy=0;
+ const p=pointAtDistance(n.wire,c.dist);player.x=p.x-player.w/2;player.y=p.y-8;
+ setTutorial(2);say('ELECTRIC CURRENT // ONLINE');
+}
+function exitWire(){
+ if(player.state!=='wire')return;
+ const w=wires[player.wireId],p=pointAtDistance(w,player.wireDist);
+ player.state='life';player.x=p.x-player.w/2;player.y=p.y-30;player.vx=0;player.vy=0;
+ say('LIFE FORM RESTORED');
+}
+function possess(){
+ if(player.state==='robot'){
+   player.state='life';player.x=robot.x-35;player.y=robot.y-25;robot.controlled=false;robot.active=false;setTutorial(7);say('CONNECTION RELEASED');return;
+ }
+ if(player.state!=='life')return;
+ const dx=Math.abs((player.x+player.w/2)-(robot.x+robot.w/2));
+ const dy=Math.abs((player.y+player.h/2)-(robot.y+robot.h/2));
+ if(dx<125&&dy<105){
+   player.state='robot';robot.active=true;robot.controlled=true;
+   player.x=robot.x;player.y=robot.y;
+   setTutorial(6);say('ROBOT CONTROL // OVERRIDE');
+ } else {
+   say('ロボットに近づいてからACTを押してね');
+ }
+}
+function atNode(w,d){const eps=7;for(let i=0;i<w.pts.length;i++){const nd=distAtPoint(w,i);if(Math.abs(d-nd)<eps)return {index:i,x:w.pts[i][0],y:w.pts[i][1]}}return null}
+function branchAt(x,y,currentId){
+ const candidates=[];
+ for(const w of wires){if(w.id===currentId)continue;for(let i=0;i<w.pts.length;i++){if(Math.hypot(w.pts[i][0]-x,w.pts[i][1]-y)<10)candidates.push(w);}}
+ return candidates;
+}
+function switchToBranch(w,x,y){
+ const c=closestDistanceOnWire(w,x,y);player.wireId=w.id;player.wireDist=c.dist;const p=pointAtDistance(w,c.dist);player.x=p.x-player.w/2;player.y=p.y-8;
+}
+function physics(){
+ const gy=groundY();
+ if(player.state==='life'){
+   player.vx+=(keys.right?.55:0)+(keys.left?-.55:0);if(!keys.left&&!keys.right)player.vx*=.78;player.vx=Math.max(-4,Math.min(4,player.vx));
+   player.vy+=.55;player.x+=player.vx;player.y+=player.vy;if(player.y+player.h>gy){player.y=gy-player.h;player.vy=0;player.onGround=true}else player.onGround=false;
+   // WIRE ENTERで電線へ入る。電線の近くなら▲でも入れる。
+   if(keys.wireEnter&&!prev.wireEnter) enterWire();
+   if(keys.up&&!prev.up){
+     const near=nearestWire(player.x+player.w/2,player.y+player.h/2);
+     if(near) enterWire();
+     else if(player.onGround){player.vy=-10;player.onGround=false}
+   }
+   if(tutorialStep===0&&player.x>300)setTutorial(1);
+   if(tutorialStep===1&&nearestWire(player.x+player.w/2,player.y+player.h/2))setTutorial(1);
+   if(Math.abs((player.x+player.w/2)-robot.x)<130&&tutorialStep<5)setTutorial(5);
+   if(door.open&&tutorialStep<7)setTutorial(7);
+   if(player.x>goal.x-80&&door.open&&tutorialStep<8)setTutorial(8);
+ } else if(player.state==='wire'){
+   const w=wires[player.wireId];
+   // 電線内では「電線の距離」を動かす。端で止まり、電線外へは絶対に出ない。
+   const dir=keys.right?1:keys.left?-1:0;
+   if(dir!==0)player.wireDist=Math.max(0,Math.min(w.total,player.wireDist+dir*6));
+   const p=pointAtDistance(w,player.wireDist);player.x=p.x-player.w/2;player.y=p.y-8;
+   if(keys.wireEnter&&!prev.wireEnter){ exitWire(); }
+   const node=atNode(w,player.wireDist);
+   if(player.state==='wire' && node&&(keys.up&&!prev.up || keys.down&&!prev.down)){
+     const branches=branchAt(node.x,node.y,w.id);
+     if(branches.length){
+       // ▲▼で分岐を切り替える。複数ある場合は入力方向で選ぶ。
+       let target=branches[0];
+       if(branches.length>1){
+         const candidates=branches.slice().sort((a,b)=>{
+           const ay=a.pts[0][1]===node.y?a.pts[a.pts.length-1][1]:a.pts[0][1];
+           const by=b.pts[0][1]===node.y?b.pts[b.pts.length-1][1]:b.pts[0][1];
+           return (keys.up?ay:by)-(keys.up?by:ay);
+         });
+         target=candidates[0];
+       }
+       switchToBranch(target,node.x,node.y);
+       setTutorial(Math.max(tutorialStep,4));say('BRANCH // 電線を切り替えた');
+     } else if(keys.down&&!prev.down && (player.wireDist<8 || player.wireDist>w.total-8)){
+       exitWire();
+     } else say('ここには分岐がない');
+   }
+   if(wireAtRobotEntrance(w)){setTutorial(Math.max(tutorialStep,4));}
+   if(wireNearRobot(w)&&Math.abs(player.x-robot.x)<100)setTutorial(Math.max(tutorialStep,5));
+ } else if(player.state==='robot'){
+   robot.vx+=(keys.right?.5:0)+(keys.left?-.5:0);robot.vx*=.88;robot.vx=Math.max(-3,Math.min(3,robot.vx));robot.vy+=.5;robot.x+=robot.vx;robot.y+=robot.vy;
+   if(robot.y+robot.h>gy){robot.y=gy-robot.h;robot.vy=0;robot.onGround=true}else robot.onGround=false;
+   if(keys.up&&!prev.up&&robot.onGround)robot.vy=-8;
+   if(Math.abs(robot.x-switchObj.x)<48){if(!switchObj.on){switchObj.on=true;door.open=true;setTutorial(7);say('POWER SWITCH // DOOR UNLOCKED')}}
+   if(keys.action&&!prev.action)possess();
+   player.x=robot.x;player.y=robot.y;
+ }
+ player.x=Math.max(20,Math.min(world.w-player.w-20,player.x));
+ if(player.state==='life'&&player.x>goal.x-10&&door.open){won=true;document.getElementById('win').style.display='flex'}
+ if(msgTimer>0){msgTimer-=1/60;if(msgTimer<=0)document.getElementById('msg').style.opacity=0}
+ prev.up=keys.up;prev.down=keys.down;prev.action=keys.action;prev.wireEnter=keys.wireEnter;
+}
+function wireAtRobotEntrance(w){return w.id===0&&player.wireDist>w.total-120}
+function wireNearRobot(w){return w.id===0&&player.wireDist>w.total-80}
+function drawBackground(){
+ ctx.fillStyle='#05070c';ctx.fillRect(0,0,W,H);const gy=groundY();
+ for(let x=-((world.cam*.18)%180);x<W+180;x+=180){ctx.fillStyle='#09111a';ctx.fillRect(x,90,2,gy-90);ctx.fillStyle='#071018';ctx.fillRect(x+2,90,178,gy-90)}
+ ctx.fillStyle='#0c1a23';for(let x=-((world.cam*.4)%240);x<W+240;x+=240)ctx.fillRect(x,95,160,8);
+ ctx.fillStyle='#0a1117';ctx.fillRect(0,gy,W,H-gy);for(let x=-((world.cam)%80);x<W+80;x+=80){ctx.fillStyle='#14232b';ctx.fillRect(x,gy,1,H-gy);ctx.fillRect(x,gy+35,80,1)}
+ const grad=ctx.createRadialGradient(W*.5,gy*.45,20,W*.5,gy*.45,360);grad.addColorStop(0,'rgba(0,160,210,.10)');grad.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+}
+function drawWires(){
+ for(const w of wires){line(w.pts,'#17343d',12);line(w.pts,'#2d5963',7);line(w.pts,'#72eaff',2);for(const p of w.pts){ctx.fillStyle='#8df4ff';ctx.fillRect(p[0]-world.cam-3,p[1]-3,6,6)}}
+ if(player.state==='wire'){const w=wires[player.wireId],p=pointAtDistance(w,player.wireDist);ctx.shadowBlur=18;ctx.shadowColor='#ffffff';ctx.fillStyle='#ffffff';ctx.fillRect(p.x-world.cam-4,p.y-4,8,8);ctx.shadowBlur=0}
+ for(let i=0;i<14;i++){const w=wires[(i+Math.floor(t/90))%wires.length],idx=Math.floor((t*.03+i*1.7)%(w.pts.length-1)),a=w.pts[idx],b=w.pts[idx+1],f=((t*.04+i*.13)%1),x=a[0]+(b[0]-a[0])*f-world.cam,y=a[1]+(b[1]-a[1])*f;ctx.fillStyle='#dfffff';ctx.fillRect(x-2,y-2,4,4)}
+}
+function drawComputer(x,y){rect(x,y,90,65,'#07141b','#31515b');rect(x+8,y+8,74,40,'#071e28','#4dd9ed');ctx.fillStyle='#72edff';ctx.fillRect(x+16-world.cam,y+17,38,3);ctx.fillRect(x+16-world.cam,y+26,56,3);ctx.fillRect(x+16-world.cam,y+35,25,3);ctx.fillStyle='#152b33';ctx.fillRect(x+38-world.cam,y+65,14,12);ctx.fillRect(x+27-world.cam,y+77,36,4)}
+function drawRobot(){
+ const x=robot.x-world.cam,y=robot.y;
+ ctx.save();
+ ctx.shadowBlur=robot.controlled?22:10;ctx.shadowColor=robot.controlled?'#62f3ff':'#ff5360';
+ // アンテナ
+ ctx.strokeStyle='#7b9aa3';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+35,y);ctx.lineTo(x+35,y-13);ctx.stroke();
+ ctx.fillStyle='#ff6973';ctx.beginPath();ctx.arc(x+35,y-16,4,0,Math.PI*2);ctx.fill();
+ // 頭
+ ctx.fillStyle='#16252c';ctx.fillRect(x+15,y+4,40,30);
+ ctx.strokeStyle='#9ab8bf';ctx.strokeRect(x+15.5,y+4.5,39,29);
+ // 目／ディスプレイ
+ ctx.fillStyle=robot.controlled?'#72f5ff':'#ff5360';ctx.fillRect(x+22,y+12,26,10);
+ ctx.fillStyle='#061117';ctx.fillRect(x+26,y+15,5,4);ctx.fillRect(x+39,y+15,5,4);
+ // 胴体
+ ctx.fillStyle='#1b3038';ctx.fillRect(x+10,y+34,50,31);
+ ctx.strokeStyle='#7c9ca4';ctx.strokeRect(x+10.5,y+34.5,49,30);
+ ctx.fillStyle=robot.controlled?'#55eaff':'#d34f5a';ctx.fillRect(x+27,y+41,16,10);
+ ctx.fillStyle='#dfffff';ctx.fillRect(x+31,y+44,8,4);
+ // 腕
+ ctx.fillStyle='#263e46';ctx.fillRect(x+2,y+37,8,27);ctx.fillRect(x+60,y+37,8,27);
+ ctx.fillStyle='#78939a';ctx.fillRect(x,y+61,11,8);ctx.fillRect(x+59,y+61,11,8);
+ // 脚
+ ctx.fillStyle='#263e46';ctx.fillRect(x+17,y+65,14,15);ctx.fillRect(x+39,y+65,14,15);
+ ctx.fillStyle='#718c93';ctx.fillRect(x+12,y+77,20,6);ctx.fillRect(x+38,y+77,20,6);
+ ctx.restore();
+}
+function drawSwitch(){rect(switchObj.x,switchObj.y,30,30,switchObj.on?'#0c6a62':'#33151c',switchObj.on?'#7effe8':'#d05c66');ctx.fillStyle=switchObj.on?'#bafff4':'#ff8a92';ctx.fillRect(switchObj.x+9-world.cam,switchObj.y+9,12,12)}
+function drawDoor(){rect(door.x,door.y,door.w,door.h,door.open?'#07151a':'#11171b','#68d9e8');if(!door.open)for(let y=door.y+8;y<door.y+door.h;y+=18)rect(door.x+5,y,22,7,'#253239');else{ctx.fillStyle='rgba(87,239,255,.12)';ctx.fillRect(door.x-world.cam,door.y,door.w,door.h)}}
+function drawGoal(){rect(goal.x,goal.y,goal.w,goal.h,'#071b21','#6ff0ff');ctx.fillStyle='#a9fbff';ctx.fillRect(goal.x+12-world.cam,goal.y+14,31,4);ctx.fillRect(goal.x+12-world.cam,goal.y+28,31,4);ctx.fillRect(goal.x+12-world.cam,goal.y+42,20,4)}
+function drawPlayer(){if(player.state==='robot')return;const x=player.x-world.cam,y=player.y;ctx.shadowBlur=14;ctx.shadowColor='#5eeaff';ctx.fillStyle='#c9ffff';ctx.fillRect(x+7,y+2,8,22);ctx.fillRect(x+2,y+8,18,9);ctx.fillStyle='#67ddff';ctx.fillRect(x+10,y-2,4,6);ctx.fillRect(x-2,y+12,4,4);ctx.fillRect(x+18,y+6,4,4);ctx.shadowBlur=0;if(Math.random()<.7)sparks.push({x:x+11+(Math.random()-.5)*18,y:y+12+(Math.random()-.5)*18,vx:(Math.random()-.5)*1.5,vy:(Math.random()-.5)*1.5,l:18})}
+function drawLabels(){ctx.font='10px ui-monospace,monospace';ctx.fillStyle='#6e9aa2';ctx.fillText('MAIN POWER',120-world.cam,385);ctx.fillText('CORE UPLINK',1100-world.cam,155);ctx.fillText('SECURITY ROBOT',1500-world.cam,455);ctx.fillText('POWER SWITCH',1800-world.cam,455);ctx.fillStyle='#75e8ff';ctx.fillText('EXIT',2328-world.cam,445)}
+function render(){drawBackground();const target=player.state==='robot'?robot.x:player.x;world.cam+=(Math.max(0,Math.min(world.w-W,target-W*.38))-world.cam)*.08;drawWires();drawComputer(960,345);drawComputer(1680,120);drawDoor();drawSwitch();drawGoal();drawRobot();drawPlayer();drawLabels();for(let i=sparks.length-1;i>=0;i--){const s=sparks[i];s.x+=s.vx;s.y+=s.vy;s.l--;ctx.fillStyle='#a9faff';ctx.fillRect(s.x,s.y,2,2);if(s.l<=0)sparks.splice(i,1)}document.getElementById('stateText').textContent=player.state==='wire'?'CURRENT':player.state==='robot'?'ROBOT CONTROL':'LIFE';updateTutorialBubble();t++}
+function loop(){if(started&&!won)physics();render();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+function bind(id,key){const e=document.getElementById(id);const on=ev=>{ev.preventDefault();keys[key]=true;e.classList.add('on')};const off=ev=>{ev.preventDefault();keys[key]=false;e.classList.remove('on')};['touchstart','mousedown'].forEach(x=>e.addEventListener(x,on,{passive:false}));['touchend','touchcancel','mouseup','mouseleave'].forEach(x=>e.addEventListener(x,off,{passive:false}))}
+bind('left','left');bind('right','right');bind('up','up');bind('down','down');bind('wireEnter','wireEnter');bind('action','action');
+addEventListener('keydown',e=>{if(e.code==='ArrowLeft'||e.code==='KeyA')keys.left=true;if(e.code==='ArrowRight'||e.code==='KeyD')keys.right=true;if(e.code==='ArrowUp'||e.code==='Space')keys.up=true;if(e.code==='ArrowDown'||e.code==='KeyS')keys.down=true;if(e.code==='KeyE')keys.action=true;if(e.code==='KeyW')keys.wireEnter=true});
+addEventListener('keyup',e=>{if(e.code==='ArrowLeft'||e.code==='KeyA')keys.left=false;if(e.code==='ArrowRight'||e.code==='KeyD')keys.right=false;if(e.code==='ArrowUp'||e.code==='Space')keys.up=false;if(e.code==='ArrowDown'||e.code==='KeyS')keys.down=false;if(e.code==='KeyE')keys.action=false;if(e.code==='KeyW')keys.wireEnter=false});
+document.getElementById('startBtn').onclick=()=>{started=true;document.getElementById('start').style.display='none';setTutorial(0);say('SYSTEM ONLINE // FIND A POWER LINE')};
+document.getElementById('restartBtn').onclick=()=>location.reload();
+</script>
+</body>
+</html>
