@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>ELECTRIC SOUL β1.6</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05070c;color:#dffcff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;touch-action:none}
+  #wrap{position:fixed;inset:0;background:#05070c}
+  canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+  #hud{position:absolute;top:0;left:0;right:0;padding:12px 14px;display:flex;justify-content:space-between;pointer-events:none;text-shadow:0 0 8px #67e8ff}
+  #title{font-size:13px;letter-spacing:2px;font-weight:700} #stageTitle{position:absolute;left:50%;transform:translateX(-50%);top:12px;font-size:13px;letter-spacing:3px;font-weight:700;color:#8df4ff;text-shadow:0 0 12px #43eaff}
+  #state{font-size:11px;opacity:.9}
+  #hint{position:absolute;left:50%;top:55px;transform:translateX(-50%);font-size:11px;text-align:center;opacity:.8;white-space:nowrap;pointer-events:none}
+  #touch{position:absolute;inset:0;pointer-events:none}
+  .pad{position:absolute;bottom:22px;width:64px;height:64px;border:2px solid #79dfff88;background:#07131bcc;color:#bdf7ff;display:flex;align-items:center;justify-content:center;font-size:24px;border-radius:12px;box-shadow:0 0 12px #00cfff33;pointer-events:auto;user-select:none}
+  .pad:active,.pad.on{background:#0d4050dd;box-shadow:0 0 18px #00d9ff99}
+  /* 通常モード: 左右キーは左側、ENTER/ACTは中央、JUMPは右側。絶対に重ならない配置。 */
+  #left{left:14px;width:56px;height:56px} #right{left:78px;width:56px;height:56px}
+  #wireEnter{left:calc(50% - 60px);width:56px;height:56px;transform:none;font-size:10px;line-height:1.05;text-align:center}
+  #action{left:calc(50% + 4px);width:56px;height:56px}
+  #jump{right:16px;width:48px;height:48px}
+  /* 電流モード: 1.4と同じ十字キー配置 */
+  #up{left:94px;bottom:96px} #down{left:94px}
+  #leftCurrent{left:20px} #rightCurrent{left:168px}
+  #upCurrent{left:94px;bottom:96px} #downCurrent{left:94px}
+  #wireEnterCurrent{right:104px;font-size:11px;line-height:1.05;text-align:center}
+  #actionCurrent{right:20px}
+  #left,#right,#up,#down,#jump{width:64px;height:64px}
+  #normalControls,#currentControls{position:absolute;inset:0}
+  #currentControls{display:none}
+  #msg{position:absolute;left:50%;bottom:108px;transform:translateX(-50%);padding:8px 12px;background:#061017dd;border:1px solid #65dcff77;font-size:11px;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap}
+  #start{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#10212c 0,#05070c 65%);z-index:5}
+  .panel{width:min(90vw,520px);padding:28px;text-align:center;border:1px solid #75e8ff66;background:#071018ee;box-shadow:0 0 40px #00bfff22}
+  .panel h1{font-size:28px;letter-spacing:5px;margin:0 0 8px}
+  .panel p{font-size:12px;line-height:1.8;color:#a9cbd0}
+  .beta{color:#75e8ff;font-size:10px;letter-spacing:3px}
+  #startBtn{margin-top:12px;padding:13px 24px;border:1px solid #75e8ff;background:#09202a;color:#dffcff;font:inherit;cursor:pointer}
+  #win{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:#02070add;z-index:4;text-align:center}
+  #win .panel{background:#06131a}
+  @media(min-width:800px){.pad{opacity:.55}}
+
+  #tutorialBubble{position:absolute;z-index:3;display:none;max-width:300px;padding:10px 12px;background:rgba(5,18,25,.95);border:1px solid #75e8ff99;border-radius:10px;box-shadow:0 0 18px #00cfff33;color:#dffcff;font-size:12px;line-height:1.55;text-align:left;pointer-events:none;transform:translateY(-4px)}
+  #tutorialTag{font-size:9px;letter-spacing:2px;color:#72eaff;margin-bottom:3px}
+  .bubbleTail{position:absolute;left:50%;bottom:-7px;width:12px;height:12px;background:rgba(5,18,25,.95);border-right:1px solid #75e8ff99;border-bottom:1px solid #75e8ff99;transform:translateX(-50%) rotate(45deg)}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="game"></canvas>
+<div id="hud"><div id="title">ELECTRIC SOUL // β1.6</div><div id="stageTitle">TUTORIAL 1</div><div id="state">STATE: <span id="stateText">LIFE</span></div></div>
+<div id="hint">研究施設 N-07　—　電気生命体のコア反応を確認</div>
+<div id="msg"></div>
+<div id="tutorialBubble"><div id="tutorialTag">TUTORIAL</div><div id="tutorialText"></div><span class="bubbleTail"></span></div>
+
+<div id="touch">
+  <div id="normalControls">
+    <div class="pad" id="left">◀</div>
+    <div class="pad" id="right">▶</div>
+    <div class="pad" id="wireEnter">ENTER</div>
+    <div class="pad" id="action">ACT</div>
+    <div class="pad" id="jump">JUMP</div>
+  </div>
+  <div id="currentControls">
+    <div class="pad" id="leftCurrent">◀</div>
+    <div class="pad" id="upCurrent">▲</div>
+    <div class="pad" id="downCurrent">▼</div>
+    <div class="pad" id="rightCurrent">▶</div>
+    <div class="pad" id="wireEnterCurrent">WIRE<br>ENTER</div>
+    <div class="pad" id="actionCurrent">ACT</div>
+  </div>
+</div>
+
+<div id="start">
+  <div class="panel">
+    <div class="beta">PROTOTYPE BUILD</div>
+    <h1>ELECTRIC SOUL</h1>
+    <p>電気そのものから生まれた生命体として、<br>研究施設の電線を駆け、機械を乗っ取れ。</p>
+    <p>電線へ入る → 電流として移動 → ロボットへ侵入 → スイッチを操作 → ゴール</p>
+    <button id="startBtn">START β1.6</button>
+    <p style="font-size:10px">PC: ← → / A D　JUMP: Space　ENTER: W　電流移動: ↑ ↓ ← →　ACT: E</p>
+  </div>
+</div>
+
+<div id="win">
+  <div class="panel">
+    <div class="beta">TUTORIAL COMPLETE</div>
+    <h1>ACCESS GRANTED</h1>
+    <p>チュートリアル2を突破した。</p>
+    <button id="restartBtn">もう一度遊ぶ</button>
+  </div>
+</div>
+</div>
+
+<script>
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,2);
+function resize(){W=innerWidth;H=innerHeight;canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}
+addEventListener('resize',resize);resize();
+
+const keys={left:false,right:false,up:false,down:false,jump:false,action:false,wireEnter:false};
+const prev={up:false,down:false,jump:false,action:false,wireEnter:false};
+const world={w:2500,h:720,cam:0};
+let stage=1;
+const stage1={w:2500};
+const stage2={w:3300};
+const player={x:110,y:510,w:22,h:25,vx:0,vy:0,onGround:false,state:'life',wireId:null,wireDist:0};
+const robot={x:1530,y:470,w:70,h:80,active:false,controlled:false,vx:0,vy:0,onGround:false};
+const switchObj={x:1830,y:470,w:30,h:30,on:false};
+const door={x:2140,y:320,w:32,h:210,open:false};
+const goal={x:2320,y:460,w:55,h:70};
+const platforms=[
+ {x:470,y:475,w:170,h:20},{x:690,y:390,w:170,h:20},{x:910,y:305,w:170,h:20}
+];
+const teleA={x:1110,y:220,r:25};
+const teleB={x:1430,y:470,r:25};
+let teleCooldown=0;
+const stage2Goal={x:3110,y:420,w:70,h:80};
+const redWires=[{id:0,pts:[[1455,470],[1650,470],[1820,380],[1980,380],[2150,470],[2380,470],[2600,350],[2850,350],[3060,430]]}];
+
+const wires=[
+ // 最初の電線は地面のすぐ上。ジャンプなしでそのまま入れる。
+ {id:0,pts:[[150,520],[420,520],[620,430],[850,430],[1040,500],[1300,500],[1530,520]]},
+ {id:1,pts:[[850,430],[850,180],[1160,180],[1370,260],[1530,520]]},
+ {id:2,pts:[[1160,180],[1160,80],[1750,80],[1830,210],[1830,440]]},
+ {id:3,pts:[[1370,260],[1450,180],[1650,180],[1830,210]]}
+];
+function prepareWires(){for(const w of wires){w.lens=[];w.total=0;for(let i=0;i<w.pts.length-1;i++){const a=w.pts[i],b=w.pts[i+1],len=Math.hypot(b[0]-a[0],b[1]-a[1]);w.lens.push(len);w.total+=len}}}
+prepareWires();
+function prepareRedWires(){for(const w of redWires){w.lens=[];w.total=0;for(let i=0;i<w.pts.length-1;i++){const a=w.pts[i],b=w.pts[i+1],len=Math.hypot(b[0]-a[0],b[1]-a[1]);w.lens.push(len);w.total+=len}}}
+prepareRedWires();
+
+let particles=[],sparks=[],t=0,started=false,won=false,msgTimer=0;
+let tutorialStep=0;
+const tutorialText1=[
+ 'まずは右へ進もう。▶を押して、地面近くの電線まで移動しよう。',
+ '電線の近くまで来たよ。WIRE ENTERを押して、電線へ入ろう。',
+ '電流になった！◀▶で電線に沿って進もう。',
+ '電線の上では、▲▼◀▶でその方向へ電線に沿って移動できるよ。',
+ 'このまま電線を進んでロボットの近くまで行こう。',
+ 'ロボットの近くでACTを押して、ロボットを乗っ取ろう。',
+ 'ロボットを操作してPOWER SWITCHへ。スイッチに近づけば作動する。',
+ 'ドアが開いた！ロボットから脱出して、▶でEXITへ向かおう。',
+ 'EXITまであと少し！'
+];
+const tutorialText2=[
+ 'TUTORIAL 2 // 新しい移動システムを学ぼう。まずは足場へ向かおう。',
+ 'JUMPで一段ずつ足場を登ろう。',
+ '3段目まで登ったら、上のテレポーターへJUMPで近づこう。',
+ 'テレポーターに触れると、もう一つのテレポーターへ瞬間移動する。',
+ '赤い電線が出現！これはハイスピード電流。通常の3倍速だよ。',
+ '赤い電線を一気に駆け抜けて、最奥のGOALを目指そう。'
+];
+let tutorialText=tutorialText1;
+function say(s){const e=document.getElementById('msg');e.textContent=s;e.style.opacity=1;msgTimer=2.2}
+function setTutorial(n){tutorialStep=Math.max(tutorialStep,n);updateTutorial()}
+function updateTutorial(){document.getElementById('tutorialText').textContent=tutorialText[tutorialStep]||''}
+function enterStage2(){
+ stage=2; world.w=stage2.w; world.cam=0; won=false; tutorialStep=0; tutorialText=tutorialText2;
+ player.x=90;player.y=groundY()-player.h;player.vx=0;player.vy=0;player.onGround=true;player.state='life';player.wireId=null;player.wireDist=0;
+ robot.controlled=false;robot.active=false; switchObj.on=false;door.open=false; teleCooldown=0;
+ document.getElementById('stageTitle').textContent='TUTORIAL 2';
+ document.getElementById('hint').textContent='研究施設 N-07 // MOVEMENT TEST';
+ say('TUTORIAL 2 // MOVEMENT TEST'); updateControls(); updateTutorial();
+}
+function hitTeleporter(){
+ if(stage!==2||teleCooldown>0||player.state!=='life')return false;
+ const cx=player.x+player.w/2,cy=player.y+player.h/2;
+ if(Math.hypot(cx-teleA.x,cy-teleA.y)<teleA.r+18){player.x=teleB.x-player.w/2;player.y=teleB.y-player.h/2;player.vx=0;player.vy=0;teleCooldown=45;setTutorial(3);say('TELEPORT // LINK ESTABLISHED');return true}
+ if(Math.hypot(cx-teleB.x,cy-teleB.y)<teleB.r+18){player.x=teleA.x-player.w/2;player.y=teleA.y-player.h/2;player.vx=0;player.vy=0;teleCooldown=45;return true}
+ return false;
+}
+function worldToScreenX(x){return x-world.cam}
+function updateTutorialBubble(){
+ const e=document.getElementById('tutorialBubble');
+ if(!started||won){e.style.display='none';return}
+ e.style.display='block';
+ let sx=worldToScreenX(player.state==='robot'?robot.x:player.x+player.w/2);
+ let sy=player.state==='robot'?robot.y:player.y;
+ sx=Math.max(12,Math.min(W-12,sx));
+ const bw=Math.min(300,W-24);
+ e.style.width=bw+'px';
+ e.style.left=Math.max(12,Math.min(W-bw-12,sx-bw/2))+'px';
+ e.style.top=Math.max(68,Math.min(H-180,sy-82))+'px';
+}
+function groundY(){return Math.min(560,H-150)}
+function rect(x,y,w,h,fill,stroke){ctx.fillStyle=fill;ctx.fillRect(x-world.cam,y,w,h);if(stroke){ctx.strokeStyle=stroke;ctx.strokeRect(x-world.cam+.5,y+.5,w-1,h-1)}}
+function line(points,style,width=3){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p[0]-world.cam,p[1]):ctx.moveTo(p[0]-world.cam,p[1]));ctx.strokeStyle=style;ctx.lineWidth=width;ctx.stroke()}
+function distToSegment(px,py,x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1,l=dx*dx+dy*dy;let q=l?((px-x1)*dx+(py-y1)*dy)/l:0;q=Math.max(0,Math.min(1,q));const x=x1+q*dx,y=y1+q*dy;return Math.hypot(px-x,py-y)}
+function nearestWire(px,py){let best=null,bd=999;for(const w of wires)for(let i=0;i<w.pts.length-1;i++){const d=distToSegment(px,py,...w.pts[i],...w.pts[i+1]);if(d<bd){bd=d;best={wire:w,i}}}return bd<48?best:null}
+function distAtPoint(w,idx){let d=0;for(let i=0;i<idx;i++)d+=w.lens[i];return d}
+function pointAtDistance(w,d){d=Math.max(0,Math.min(w.total,d));let acc=0;for(let i=0;i<w.lens.length;i++){const len=w.lens[i];if(d<=acc+len||i===w.lens.length-1){const f=len?Math.max(0,Math.min(1,(d-acc)/len)):0;const a=w.pts[i],b=w.pts[i+1];return {x:a[0]+(b[0]-a[0])*f,y:a[1]+(b[1]-a[1])*f,seg:i,f};}acc+=len}return {x:w.pts[w.pts.length-1][0],y:w.pts[w.pts.length-1][1],seg:w.pts.length-2,f:1}}
+function closestDistanceOnWire(w,px,py){let best={d:99999,dist:0};for(let i=0;i<w.pts.length-1;i++){const a=w.pts[i],b=w.pts[i+1],dx=b[0]-a[0],dy=b[1]-a[1],len2=dx*dx+dy*dy;let f=len2?((px-a[0])*dx+(py-a[1])*dy)/len2:0;f=Math.max(0,Math.min(1,f));const x=a[0]+dx*f,y=a[1]+dy*f,d=Math.hypot(px-x,py-y);if(d<best.d)best={d,dist:distAtPoint(w,i)+Math.sqrt(len2)*f};}return best}
+function enterWire(){
+ if(stage===2){
+   if(player.state!=='life')return;
+   const n=closestDistanceOnWire(redWires[0],player.x+player.w/2,player.y+player.h/2);
+   if(n.d<55){player.state='wire';player.wireId=0;player.wireDist=n.dist;player.vx=0;player.vy=0;setTutorial(4);say('HIGH-SPEED CURRENT // 3X SPEED');} else say('赤い電線の近くでWIRE ENTERを押してね');
+   return;
+ }
+ if(player.state!=='life')return;
+ const n=nearestWire(player.x+player.w/2,player.y+player.h/2);
+ if(!n||n.dist>55){say('電線の近くまで移動してね');return}
+ const c=closestDistanceOnWire(n.wire,player.x+player.w/2,player.y+player.h/2);
+ player.state='wire';player.wireId=n.wire.id;player.wireDist=c.dist;player.vx=0;player.vy=0;
+ const p=pointAtDistance(n.wire,c.dist);player.x=p.x-player.w/2;player.y=p.y-8;
+ setTutorial(2);say('ELECTRIC CURRENT // ONLINE');
+}
+function exitWire(){
+ if(player.state!=='wire')return;
+ const w=stage===2?redWires[player.wireId]:wires[player.wireId],p=pointAtDistance(w,player.wireDist);
+ player.state='life';player.x=p.x-player.w/2;player.y=p.y-30;player.vx=0;player.vy=0;
+ say('LIFE FORM RESTORED');
+}
+function possess(){
+ if(player.state==='robot'){
+   player.state='life';player.x=robot.x-35;player.y=robot.y-25;robot.controlled=false;robot.active=false;setTutorial(7);say('CONNECTION RELEASED');return;
+ }
+ if(player.state!=='life')return;
+ const dx=Math.abs((player.x+player.w/2)-(robot.x+robot.w/2));
+ const dy=Math.abs((player.y+player.h/2)-(robot.y+robot.h/2));
+ if(dx<125&&dy<105){
+   player.state='robot';robot.active=true;robot.controlled=true;
+   player.x=robot.x;player.y=robot.y;
+   setTutorial(6);say('ROBOT CONTROL // OVERRIDE');
+ } else {
+   say('ロボットに近づいてからACTを押してね');
+ }
+}
+function atNode(w,d){const eps=7;for(let i=0;i<w.pts.length;i++){const nd=distAtPoint(w,i);if(Math.abs(d-nd)<eps)return {index:i,x:w.pts[i][0],y:w.pts[i][1]}}return null}
+function branchAt(x,y,currentId){
+ const candidates=[];
+ for(const w of wires){if(w.id===currentId)continue;for(let i=0;i<w.pts.length;i++){if(Math.hypot(w.pts[i][0]-x,w.pts[i][1]-y)<10)candidates.push(w);}}
+ return candidates;
+}
+function switchToBranch(w,x,y){
+ const c=closestDistanceOnWire(w,x,y);player.wireId=w.id;player.wireDist=c.dist;const p=pointAtDistance(w,c.dist);player.x=p.x-player.w/2;player.y=p.y-8;
+}
+function updateControls(){
+ const current=player.state==='wire';
+ document.getElementById('normalControls').style.display=current?'none':'block';
+ document.getElementById('currentControls').style.display=current?'block':'none';
+}
+const LIFE_SPEED=4;
+const CURRENT_SPEED=6; // 通常移動の1.5倍
+
+function physicsStage2(){
+ const gy=groundY();
+ if(player.state==='life'){
+   player.vx+=(keys.right?.55:0)+(keys.left?-.55:0);
+   if(!keys.left&&!keys.right)player.vx*=.78;
+   player.vx=Math.max(-LIFE_SPEED,Math.min(LIFE_SPEED,player.vx));
+   player.vy+=.55;
+   const oldY=player.y; player.x+=player.vx; player.y+=player.vy; player.onGround=false;
+   if(player.y+player.h>gy){player.y=gy-player.h;player.vy=0;player.onGround=true}
+   // 足場への着地判定
+   if(player.vy>=0){
+     for(const p of platforms){
+       const wasAbove=oldY+player.h<=p.y+4;
+       const overlaps=player.x+player.w>p.x&&player.x<p.x+p.w;
+       if(wasAbove&&overlaps&&player.y+player.h>=p.y){player.y=p.y-player.h;player.vy=0;player.onGround=true;break}
+     }
+   }
+   if(keys.wireEnter&&!prev.wireEnter){say('このステージでは、まずテレポーターを目指そう');}
+   if(keys.jump&&!prev.jump&&player.onGround){player.vy=-10;player.onGround=false}
+   hitTeleporter();
+   if(player.y<330&&player.x>900&&tutorialStep<2)setTutorial(2);
+   if(Math.hypot(player.x+player.w/2-teleA.x,player.y+player.h/2-teleA.y)<80&&tutorialStep<3)setTutorial(2);
+   if(player.x>teleB.x-90&&player.x<teleB.x+90&&tutorialStep<4)setTutorial(4);
+ } else if(player.state==='wire'){
+   const w=redWires[player.wireId];
+   const dx=(keys.right?1:0)-(keys.left?1:0),dy=(keys.down?1:0)-(keys.up?1:0);
+   if(dx||dy){
+     const pF=pointAtDistance(w,Math.min(w.total,player.wireDist+2));
+     const pB=pointAtDistance(w,Math.max(0,player.wireDist-2));
+     const tx=pF.x-pB.x,ty=pF.y-pB.y,len=Math.hypot(tx,ty)||1;
+     const dot=(dx*tx+dy*ty)/len;
+     player.wireDist=Math.max(0,Math.min(w.total,player.wireDist+dot*CURRENT_SPEED*3));
+   }
+   const p=pointAtDistance(w,player.wireDist);player.x=p.x-player.w/2;player.y=p.y-8;
+   if(keys.wireEnter&&!prev.wireEnter)exitWire();
+   if(player.wireDist>w.total-80)setTutorial(5);
+ } else if(player.state==='robot'){ /* stage2では使用しない */ }
+ if(stage===2&&player.state==='life'&&player.x>stage2Goal.x-30){won=true;document.getElementById('win').style.display='flex'}
+ if(teleCooldown>0)teleCooldown--;
+ prev.up=keys.up;prev.down=keys.down;prev.jump=keys.jump;prev.action=keys.action;prev.wireEnter=keys.wireEnter;
+ updateControls();
+}
+function physics(){
+ if(stage===2){physicsStage2();return;}
+ const gy=groundY();
+ if(player.state==='life'){
+   player.vx+=(keys.right?.55:0)+(keys.left?-.55:0);if(!keys.left&&!keys.right)player.vx*=.78;player.vx=Math.max(-LIFE_SPEED,Math.min(LIFE_SPEED,player.vx));
+   player.vy+=.55;player.x+=player.vx;player.y+=player.vy;if(player.y+player.h>gy){player.y=gy-player.h;player.vy=0;player.onGround=true}else player.onGround=false;
+   // 通常モードではJUMPはジャンプ専用。押しただけでは電線に入らない。
+   if(keys.wireEnter&&!prev.wireEnter) enterWire();
+   if(keys.jump&&!prev.jump&&player.onGround){player.vy=-10;player.onGround=false}
+   // ACTは地上の電気生命体から直接ロボットを乗っ取る。
+   // ACTは地上の電気生命体から直接ロボットを乗っ取る。
+   if(keys.action&&!prev.action) possess();
+   if(tutorialStep===0&&player.x>300)setTutorial(1);
+   if(tutorialStep===1&&nearestWire(player.x+player.w/2,player.y+player.h/2))setTutorial(1);
+   if(Math.abs((player.x+player.w/2)-robot.x)<130&&tutorialStep<5)setTutorial(5);
+   if(door.open&&tutorialStep<7)setTutorial(7);
+   if(player.x>goal.x-80&&door.open&&tutorialStep<8)setTutorial(8);
+ } else if(player.state==='wire'){
+   const w=wires[player.wireId];
+   // 電線内は4方向入力で、その方向に最も近い電線の進行方向へ移動する。
+   // 上下は分岐変更ボタンではなく、上/下方向へ伸びる電線そのものを進むために使う。
+   const dx=(keys.right?1:0)-(keys.left?1:0);
+   const dy=(keys.down?1:0)-(keys.up?1:0);
+   if(dx||dy){
+     let nw=w, nd=player.wireDist;
+     const here=pointAtDistance(w,player.wireDist);
+     const node=atNode(w,player.wireDist);
+
+     // ノードでは、入力方向に一番近い接続先を選ぶ。
+     if(node){
+       const candidates=[];
+       for(const cw of wires){
+         for(let i=0;i<cw.pts.length;i++){
+           if(Math.hypot(cw.pts[i][0]-node.x,cw.pts[i][1]-node.y)<10){
+             for(const q of [i-1,i+1]){
+               if(q<0||q>=cw.pts.length) continue;
+               const vx=cw.pts[q][0]-node.x, vy=cw.pts[q][1]-node.y;
+               const len=Math.hypot(vx,vy)||1;
+               candidates.push({w:cw,x:vx/len,y:vy/len});
+             }
+           }
+         }
+       }
+       // 現在の電線の両方向も候補にする。
+       for(const sign of [-1,1]){
+         const i=node.index+sign;
+         if(i>=0&&i<w.pts.length){
+           const vx=w.pts[i][0]-node.x,vy=w.pts[i][1]-node.y,len=Math.hypot(vx,vy)||1;
+           candidates.push({w,x:vx/len,y:vy/len});
+         }
+       }
+       let best=null,bestScore=0.35;
+       for(const c of candidates){
+         const score=dx*c.x+dy*c.y;
+         if(score>bestScore){bestScore=score;best=c}
+       }
+       if(best){
+         nw=best.w;
+         nd=closestDistanceOnWire(nw,node.x,node.y).dist + 1;
+       }
+     }
+
+     // ノードでない場所では、現在の線分の接線方向と入力方向を比較。
+     if(nw===w){
+       const pF=pointAtDistance(w,Math.min(w.total,player.wireDist+2));
+       const pB=pointAtDistance(w,Math.max(0,player.wireDist-2));
+       const tx=pF.x-pB.x,ty=pF.y-pB.y,len=Math.hypot(tx,ty)||1;
+       const dot=(dx*tx+dy*ty)/len;
+       if(dot>0.08) nd=player.wireDist+Math.max(1,dot*CURRENT_SPEED);
+       else if(dot<-0.08) nd=player.wireDist+Math.min(-1,dot*CURRENT_SPEED);
+     }
+
+     player.wireId=nw.id;
+     player.wireDist=Math.max(0,Math.min(nw.total,nd));
+   }
+
+   const p=pointAtDistance(wires[player.wireId],player.wireDist);
+   player.x=p.x-player.w/2;
+   player.y=p.y-8;
+
+   // WIRE ENTERは電線への入退出専用。進路変更には使わない。
+   if(keys.wireEnter&&!prev.wireEnter) exitWire();
+
+   if(wireAtRobotEntrance(wires[player.wireId]))setTutorial(Math.max(tutorialStep,4));
+   if(wireNearRobot(wires[player.wireId])&&Math.abs(player.x-robot.x)<130)setTutorial(Math.max(tutorialStep,5));
+ } else if(player.state==='robot'){
+   robot.vx+=(keys.right?.5:0)+(keys.left?-.5:0);robot.vx*=.88;robot.vx=Math.max(-3,Math.min(3,robot.vx));robot.vy+=.5;robot.x+=robot.vx;robot.y+=robot.vy;
+   if(robot.y+robot.h>gy){robot.y=gy-robot.h;robot.vy=0;robot.onGround=true}else robot.onGround=false;
+   if(keys.jump&&!prev.jump&&robot.onGround)robot.vy=-8;
+   if(Math.abs(robot.x-switchObj.x)<48){if(!switchObj.on){switchObj.on=true;door.open=true;setTutorial(7);say('POWER SWITCH // DOOR UNLOCKED')}}
+   if(keys.action&&!prev.action)possess();
+   player.x=robot.x;player.y=robot.y;
+ }
+ player.x=Math.max(20,Math.min(world.w-player.w-20,player.x));
+ if(stage===1&&player.state==='life'&&player.x>goal.x-10&&door.open){enterStage2();}
+ if(msgTimer>0){msgTimer-=1/60;if(msgTimer<=0)document.getElementById('msg').style.opacity=0}
+ prev.up=keys.up;prev.down=keys.down;prev.jump=keys.jump;prev.action=keys.action;prev.wireEnter=keys.wireEnter;
+ updateControls();
+}
+function wireAtRobotEntrance(w){return w.id===0&&player.wireDist>w.total-120}
+function wireNearRobot(w){return w.id===0&&player.wireDist>w.total-80}
+function drawBackground(){
+ ctx.fillStyle='#05070c';ctx.fillRect(0,0,W,H);const gy=groundY();
+ for(let x=-((world.cam*.18)%180);x<W+180;x+=180){ctx.fillStyle='#09111a';ctx.fillRect(x,90,2,gy-90);ctx.fillStyle='#071018';ctx.fillRect(x+2,90,178,gy-90)}
+ ctx.fillStyle='#0c1a23';for(let x=-((world.cam*.4)%240);x<W+240;x+=240)ctx.fillRect(x,95,160,8);
+ ctx.fillStyle='#0a1117';ctx.fillRect(0,gy,W,H-gy);for(let x=-((world.cam)%80);x<W+80;x+=80){ctx.fillStyle='#14232b';ctx.fillRect(x,gy,1,H-gy);ctx.fillRect(x,gy+35,80,1)}
+ const grad=ctx.createRadialGradient(W*.5,gy*.45,20,W*.5,gy*.45,360);grad.addColorStop(0,'rgba(0,160,210,.10)');grad.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+}
+function drawWires(){
+ if(stage===2){
+   for(const w of redWires){line(w.pts,'#3b1117',14);line(w.pts,'#7c1d2b',8);line(w.pts,'#ff304d',3);for(const p of w.pts){ctx.fillStyle='#ff7182';ctx.fillRect(p[0]-world.cam-4,p[1]-4,8,8)}}
+   if(player.state==='wire'){const w=redWires[player.wireId],p=pointAtDistance(w,player.wireDist);ctx.shadowBlur=22;ctx.shadowColor='#ff304d';ctx.fillStyle='#fff';ctx.fillRect(p.x-world.cam-5,p.y-5,10,10);ctx.shadowBlur=0}
+   return;
+ }
+ for(const w of wires){line(w.pts,'#17343d',12);line(w.pts,'#2d5963',7);line(w.pts,'#72eaff',2);for(const p of w.pts){ctx.fillStyle='#8df4ff';ctx.fillRect(p[0]-world.cam-3,p[1]-3,6,6)}}
+ if(player.state==='wire'){const w=wires[player.wireId],p=pointAtDistance(w,player.wireDist);ctx.shadowBlur=18;ctx.shadowColor='#ffffff';ctx.fillStyle='#ffffff';ctx.fillRect(p.x-world.cam-4,p.y-4,8,8);ctx.shadowBlur=0}
+ for(let i=0;i<14;i++){const w=wires[(i+Math.floor(t/90))%wires.length],idx=Math.floor((t*.03+i*1.7)%(w.pts.length-1)),a=w.pts[idx],b=w.pts[idx+1],f=((t*.04+i*.13)%1),x=a[0]+(b[0]-a[0])*f-world.cam,y=a[1]+(b[1]-a[1])*f;ctx.fillStyle='#dfffff';ctx.fillRect(x-2,y-2,4,4)}
+}
+function drawComputer(x,y){rect(x,y,90,65,'#07141b','#31515b');rect(x+8,y+8,74,40,'#071e28','#4dd9ed');ctx.fillStyle='#72edff';ctx.fillRect(x+16-world.cam,y+17,38,3);ctx.fillRect(x+16-world.cam,y+26,56,3);ctx.fillRect(x+16-world.cam,y+35,25,3);ctx.fillStyle='#152b33';ctx.fillRect(x+38-world.cam,y+65,14,12);ctx.fillRect(x+27-world.cam,y+77,36,4)}
+function drawRobot(){
+ const x=robot.x-world.cam,y=robot.y;
+ ctx.save();
+ ctx.shadowBlur=robot.controlled?24:12;ctx.shadowColor=robot.controlled?'#67f5ff':'#c74f65';
+ // スタイリッシュな研究施設用人型ユニット
+ ctx.fillStyle='#0b171d';ctx.strokeStyle='#6d9aa5';ctx.lineWidth=2;
+ // 頭部
+ ctx.beginPath();ctx.moveTo(x+20,y+5);ctx.lineTo(x+50,y+5);ctx.lineTo(x+59,y+14);ctx.lineTo(x+55,y+32);ctx.lineTo(x+16,y+32);ctx.lineTo(x+11,y+16);ctx.closePath();ctx.fill();ctx.stroke();
+ // バイザー
+ ctx.fillStyle=robot.controlled?'#72f5ff':'#ff5265';ctx.fillRect(x+20,y+13,30,8);ctx.fillStyle='#071218';ctx.fillRect(x+25,y+15,7,4);ctx.fillRect(x+38,y+15,7,4);
+ // 首
+ ctx.fillStyle='#213841';ctx.fillRect(x+29,y+32,12,8);
+ // 胸部アーマー
+ ctx.fillStyle='#10242c';ctx.strokeStyle='#7ca6af';ctx.beginPath();ctx.moveTo(x+15,y+39);ctx.lineTo(x+55,y+39);ctx.lineTo(x+62,y+65);ctx.lineTo(x+8,y+65);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.fillStyle=robot.controlled?'#59ecff':'#d14d5d';ctx.beginPath();ctx.moveTo(x+28,y+45);ctx.lineTo(x+42,y+45);ctx.lineTo(x+46,y+56);ctx.lineTo(x+24,y+56);ctx.closePath();ctx.fill();
+ // 肩・腕
+ ctx.fillStyle='#1a3039';ctx.strokeStyle='#668a94';ctx.fillRect(x+2,y+39,11,12);ctx.strokeRect(x+2.5,y+39.5,10,11);ctx.fillRect(x+57,y+39,11,12);ctx.strokeRect(x+57.5,y+39.5,10,11);
+ ctx.fillRect(x+4,y+51,8,18);ctx.fillRect(x+58,y+51,8,18);
+ ctx.fillStyle='#9bb7bd';ctx.fillRect(x+1,y+67,11,6);ctx.fillRect(x+58,y+67,11,6);
+ // 腰・脚
+ ctx.fillStyle='#132a33';ctx.strokeStyle='#688c96';ctx.fillRect(x+20,y+64,30,10);ctx.strokeRect(x+20.5,y+64.5,29,9);ctx.fillRect(x+17,y+73,13,13);ctx.fillRect(x+40,y+73,13,13);
+ ctx.fillStyle='#91adb3';ctx.fillRect(x+13,y+84,18,5);ctx.fillRect(x+39,y+84,19,5);
+ // アンテナ
+ ctx.strokeStyle='#9bb7bd';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+35,y+5);ctx.lineTo(x+35,y-7);ctx.stroke();ctx.fillStyle=robot.controlled?'#72f5ff':'#ff5360';ctx.beginPath();ctx.arc(x+35,y-10,3,0,Math.PI*2);ctx.fill();
+ ctx.restore();
+}
+function drawSwitch(){rect(switchObj.x,switchObj.y,30,30,switchObj.on?'#0c6a62':'#33151c',switchObj.on?'#7effe8':'#d05c66');ctx.fillStyle=switchObj.on?'#bafff4':'#ff8a92';ctx.fillRect(switchObj.x+9-world.cam,switchObj.y+9,12,12)}
+function drawDoor(){rect(door.x,door.y,door.w,door.h,door.open?'#07151a':'#11171b','#68d9e8');if(!door.open)for(let y=door.y+8;y<door.y+door.h;y+=18)rect(door.x+5,y,22,7,'#253239');else{ctx.fillStyle='rgba(87,239,255,.12)';ctx.fillRect(door.x-world.cam,door.y,door.w,door.h)}}
+function drawGoal(){rect(goal.x,goal.y,goal.w,goal.h,'#071b21','#6ff0ff');ctx.fillStyle='#a9fbff';ctx.fillRect(goal.x+12-world.cam,goal.y+14,31,4);ctx.fillRect(goal.x+12-world.cam,goal.y+28,31,4);ctx.fillRect(goal.x+12-world.cam,goal.y+42,20,4)}
+function drawPlayer(){if(player.state==='robot')return;const x=player.x-world.cam,y=player.y;ctx.shadowBlur=14;ctx.shadowColor='#5eeaff';ctx.fillStyle='#c9ffff';ctx.fillRect(x+7,y+2,8,22);ctx.fillRect(x+2,y+8,18,9);ctx.fillStyle='#67ddff';ctx.fillRect(x+10,y-2,4,6);ctx.fillRect(x-2,y+12,4,4);ctx.fillRect(x+18,y+6,4,4);ctx.shadowBlur=0;if(Math.random()<.7)sparks.push({x:x+11+(Math.random()-.5)*18,y:y+12+(Math.random()-.5)*18,vx:(Math.random()-.5)*1.5,vy:(Math.random()-.5)*1.5,l:18})}
+function drawLabels(){
+ ctx.font='10px ui-monospace,monospace';
+ if(stage===2){
+   ctx.fillStyle='#6e9aa2';ctx.fillText('JUMP TRAINING',420-world.cam,445);
+   ctx.fillStyle='#72eaff';ctx.fillText('TELEPORTER A',1060-world.cam,175);ctx.fillText('TELEPORTER B',1380-world.cam,445);
+   ctx.fillStyle='#ff6677';ctx.fillText('HIGH-SPEED CURRENT',1660-world.cam,335);ctx.fillText('GOAL',3115-world.cam,405);
+ }else{
+   ctx.fillStyle='#6e9aa2';ctx.fillText('MAIN POWER',120-world.cam,385);ctx.fillText('CORE UPLINK',1100-world.cam,155);ctx.fillText('SECURITY ROBOT',1500-world.cam,455);ctx.fillText('POWER SWITCH',1800-world.cam,455);ctx.fillStyle='#75e8ff';ctx.fillText('EXIT',2328-world.cam,445);
+ }
+}
+function drawPlatforms(){
+ if(stage!==2)return;
+ for(const p of platforms){rect(p.x,p.y,p.w,p.h,'#142a34','#68d9e8');rect(p.x+10,p.y+5,p.w-20,4,'#3c6874');}
+}
+function drawTeleporter(tp,active=true){
+ ctx.save();ctx.translate(tp.x-world.cam,tp.y);ctx.shadowBlur=active?22:8;ctx.shadowColor='#72eaff';ctx.strokeStyle='#72eaff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,tp.r,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='#bdf7ff';ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,tp.r-7,0,Math.PI*2);ctx.stroke();ctx.fillStyle='rgba(80,230,255,.12)';ctx.beginPath();ctx.arc(0,0,tp.r-8,0,Math.PI*2);ctx.fill();ctx.restore();
+}
+function drawStage2Goal(){if(stage!==2)return;rect(stage2Goal.x,stage2Goal.y,stage2Goal.w,stage2Goal.h,'#071b21','#ff5367');ctx.fillStyle='#ff9aa5';ctx.fillRect(stage2Goal.x+14-world.cam,stage2Goal.y+15,42,5);ctx.fillRect(stage2Goal.x+14-world.cam,stage2Goal.y+30,42,5);ctx.fillRect(stage2Goal.x+14-world.cam,stage2Goal.y+45,30,5)}
+function render(){
+ drawBackground();
+ const target=player.state==='robot'?robot.x:player.x;
+ world.cam+=(Math.max(0,Math.min(world.w-W,target-W*.38))-world.cam)*.08;
+ if(stage===2){drawPlatforms();drawTeleporter(teleA);drawTeleporter(teleB);drawWires();drawStage2Goal();drawLabels();drawPlayer();}
+ else {drawWires();drawComputer(960,345);drawComputer(1680,120);drawDoor();drawSwitch();drawGoal();drawRobot();drawPlayer();drawLabels();}
+ for(let i=sparks.length-1;i>=0;i--){const sp=sparks[i];sp.x+=sp.vx;sp.y+=sp.vy;sp.l--;ctx.fillStyle='#a9faff';ctx.fillRect(sp.x,sp.y,2,2);if(sp.l<=0)sparks.splice(i,1)}
+ document.getElementById('stateText').textContent=player.state==='wire'?'CURRENT':player.state==='robot'?'ROBOT CONTROL':'LIFE';
+ updateTutorialBubble();t++;
+}
+function loop(){if(started&&!won)physics();render();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+function bind(id,key){const e=document.getElementById(id);const on=ev=>{ev.preventDefault();keys[key]=true;e.classList.add('on')};const off=ev=>{ev.preventDefault();keys[key]=false;e.classList.remove('on')};['touchstart','mousedown'].forEach(x=>e.addEventListener(x,on,{passive:false}));['touchend','touchcancel','mouseup','mouseleave'].forEach(x=>e.addEventListener(x,off,{passive:false}))}
+bind('left','left');bind('right','right');bind('wireEnter','wireEnter');bind('action','action');bind('jump','jump');
+bind('leftCurrent','left');bind('upCurrent','up');bind('downCurrent','down');bind('rightCurrent','right');bind('wireEnterCurrent','wireEnter');bind('actionCurrent','action');
+addEventListener('keydown',e=>{if(e.code==='ArrowLeft'||e.code==='KeyA')keys.left=true;if(e.code==='ArrowRight'||e.code==='KeyD')keys.right=true;if(e.code==='ArrowUp')keys.up=true;if(e.code==='Space')keys.jump=true;if(e.code==='ArrowDown'||e.code==='KeyS')keys.down=true;if(e.code==='KeyE')keys.action=true;if(e.code==='KeyW')keys.wireEnter=true});
+addEventListener('keyup',e=>{if(e.code==='ArrowLeft'||e.code==='KeyA')keys.left=false;if(e.code==='ArrowRight'||e.code==='KeyD')keys.right=false;if(e.code==='ArrowUp')keys.up=false;if(e.code==='Space')keys.jump=false;if(e.code==='ArrowDown'||e.code==='KeyS')keys.down=false;if(e.code==='KeyE')keys.action=false;if(e.code==='KeyW')keys.wireEnter=false});
+document.getElementById('startBtn').onclick=()=>{started=true;document.getElementById('start').style.display='none';updateControls();setTutorial(0);say('SYSTEM ONLINE // FIND A POWER LINE')};
+document.getElementById('restartBtn').onclick=()=>location.reload();
+</script>
+</body>
+</html>
