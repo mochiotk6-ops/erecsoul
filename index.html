@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.6</title>
+<title>ELECTRIC SOUL β2.7.1</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -44,7 +44,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.6</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.7.1</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="message"></div>
 <div id="controls">
@@ -54,8 +54,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.6 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.6</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.7.1 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.7.1</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -65,7 +65,7 @@ let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,2);
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);canvas.width=Math.floor(W*DPR);canvas.height=Math.floor(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0)}
 addEventListener('resize',resize);resize();
 
-const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:500,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[]};
+const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:500,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[]};
 const keys={up:false,down:false};
 const wires=[
   {y:260,label:'UPPER',glow:'#56eaff'},
@@ -77,17 +77,42 @@ const player={x:160,y:400,targetY:400,r:13,phase:0};
 function showMessage(text){const e=document.getElementById('message');e.textContent=text;e.style.opacity=1;clearTimeout(showMessage.timer);showMessage.timer=setTimeout(()=>e.style.opacity=0,1100)}
 function generateViruses(){
   state.viruses.length=0;
+  state.energies.length=0;
   // 中段・下段だけに、個数と間隔をランダム配置。スタート直後は安全地帯を確保。
+  // 電線の「目盛」は110px間隔。隣り合う電線のウイルス同士は最低2目盛(220px)離す。
   const lanes=[1,2];
+  const placed={1:[],2:[]};
   for(const lane of lanes){
     let x=900+Math.random()*500;
     const count=10+Math.floor(Math.random()*11);
     for(let i=0;i<count;i++){
-      x+=650+Math.random()*1150;
-      state.viruses.push({x,y:wires[lane].y,lane,r:11.4,phase:Math.random()*Math.PI*2});
+      let tries=0;
+      let candidate=x+650+Math.random()*1150;
+      while(tries<30){
+        const other=lane===1?placed[2]:placed[1];
+        if(other.every(v=>Math.abs(v-candidate)>=220))break;
+        candidate+=220+Math.random()*500;
+        tries++;
+      }
+      x=candidate;
+      const v={x,y:wires[lane].y,lane,r:11.4,phase:Math.random()*Math.PI*2};
+      state.viruses.push(v);
+      placed[lane].push(candidate);
     }
   }
   state.viruses.sort((a,b)=>a.x-b.x);
+
+  // 約1800pxごとをエナジーの抽選ポイントとし、各ポイント30%の確率で生成。
+  // ウイルスと重ならない位置だけを採用し、3本すべての電線を対象にする。
+  const maxX=state.worldW-1200;
+  for(let x=1200;x<maxX;x+=1800){
+    if(Math.random()>=0.30)continue;
+    const lane=Math.floor(Math.random()*wires.length);
+    const ex=x+(Math.random()*700-350);
+    const blocked=state.viruses.some(v=>v.lane===lane && Math.abs(v.x-ex)<150);
+    if(!blocked)state.energies.push({x:ex,y:wires[lane].y,lane,r:6.84,phase:Math.random()*Math.PI*2});
+  }
+  state.energies.sort((a,b)=>a.x-b.x);
 }
 function updateBatteryHud(){
   for(let i=0;i<3;i++)document.getElementById('bat'+i).classList.toggle('empty',i>=state.battery);
@@ -111,6 +136,27 @@ function checkVirusCollision(){
   if(state.damageTimer>0)return;
   for(const v of state.viruses){
     if(Math.abs(v.x-player.x)<v.r+player.r+3 && Math.abs(v.y-player.y)<v.r+player.r+5){damage();return;}
+  }
+}
+function checkEnergyCollection(){
+  for(let i=state.energies.length-1;i>=0;i--){
+    const e=state.energies[i];
+    if(Math.abs(e.x-player.x)<e.r+player.r+7 && Math.abs(e.y-player.y)<e.r+player.r+7){
+      // バッテリー満タン時は、エナジーに触れても何も起こさない。
+      // エナジーも消費せず、その場に残る。
+      if(state.battery>=3) continue;
+
+      state.energies.splice(i,1);
+      state.charge=Math.min(10,state.charge+5);
+      updateBatteryHud();
+      showMessage('ENERGY +50% // CHARGE');
+      if(state.charge>=10){
+        state.battery=Math.min(3,state.battery+1);
+        state.charge=0;
+        updateBatteryHud();
+        showMessage('ENERGY // BATTERY +1');
+      }
+    }
   }
 }
 function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;player.x=160;player.y=wires[1].y;player.targetY=wires[1].y;player.phase=0;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';showMessage('3本の電線 // RUN START')}
@@ -162,6 +208,7 @@ function update(dt){
   }else{state.charge=0;}
   updateBatteryHud();
   checkVirusCollision();
+  checkEnergyCollection();
   addParticles();
   for(let i=state.particles.length-1;i>=0;i--){const p=state.particles[i];p.x+=p.vx*dt*4;p.y+=p.vy*dt*4;p.life-=dt*60;if(p.life<=0)state.particles.splice(i,1)}
 }
@@ -216,6 +263,18 @@ function drawVirus(v){
   ctx.restore();
 }
 function drawViruses(){for(const v of state.viruses)drawVirus(v);}
+function drawEnergy(e){
+  const x=worldX(e.x),y=e.y;
+  if(x<-40||x>W+40)return;
+  const s=1+Math.sin(state.t*7+e.phase)*.08;
+  ctx.save();ctx.translate(x,y);ctx.rotate(Math.PI/4);ctx.scale(s,s);
+  ctx.shadowBlur=18;ctx.shadowColor='#c8f8ff';
+  ctx.fillStyle='#d8fbff';ctx.fillRect(-6.84,-6.84,13.68,13.68);
+  ctx.fillStyle='#7eeeff';ctx.fillRect(-4.3,-4.3,8.6,8.6);
+  ctx.strokeStyle='rgba(240,255,255,.95)';ctx.lineWidth=1.5;ctx.strokeRect(-6.84,-6.84,13.68,13.68);
+  ctx.restore();ctx.shadowBlur=0;
+}
+function drawEnergies(){for(const e of state.energies)drawEnergy(e);}
 function drawParticles(){for(const p of state.particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle='#bffcff';ctx.fillRect(worldX(p.x),p.y,2,2)}ctx.globalAlpha=1}
 function drawStations(){
   for(let i=0;i<3;i++){
@@ -231,7 +290,7 @@ function render(){
   drawBackground();
   drawStations();
   wires.forEach((w,i)=>drawWire(w.y,w.glow,w.label,i));
-  drawViruses();drawParticles();drawPlayer();drawSwitchEffect();
+  drawViruses();drawEnergies();drawParticles();drawPlayer();drawSwitchEffect();
   ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(0,H-150,W,150);
   ctx.strokeStyle='rgba(92,224,241,.13)';ctx.beginPath();ctx.moveTo(0,H-150);ctx.lineTo(W,H-150);ctx.stroke();
   if(state.running){ctx.fillStyle='#6fa8b1';ctx.font='10px Arial';ctx.fillText('LINE '+String(state.wire+1).padStart(2,'0')+' / 03',W-100,88)}
