@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.7.1</title>
+<title>ELECTRIC SOUL β2.8</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -44,7 +44,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.7.1</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.8</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="message"></div>
 <div id="controls">
@@ -54,8 +54,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.7.1 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.7.1</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.8 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.8</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -69,29 +69,31 @@ const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wire
 const keys={up:false,down:false};
 const wires=[
   {y:260,label:'UPPER',glow:'#56eaff'},
-  {y:400,label:'CORE',glow:'#7cf2ff'},
-  {y:540,label:'LOWER',glow:'#48d9f3'}
+  {y:360,label:'CORE',glow:'#7cf2ff'},
+  {y:460,label:'LOWER',glow:'#48d9f3'},
+  {y:560,label:'HIGH SPEED',glow:'#ff4055',speedMul:3}
 ];
-const player={x:160,y:400,targetY:400,r:13,phase:0};
+const player={x:160,y:360,targetY:360,r:13,phase:0};
 
 function showMessage(text){const e=document.getElementById('message');e.textContent=text;e.style.opacity=1;clearTimeout(showMessage.timer);showMessage.timer=setTimeout(()=>e.style.opacity=0,1100)}
 function generateViruses(){
   state.viruses.length=0;
   state.energies.length=0;
-  // 中段・下段だけに、個数と間隔をランダム配置。スタート直後は安全地帯を確保。
-  // 電線の「目盛」は110px間隔。隣り合う電線のウイルス同士は最低2目盛(220px)離す。
-  const lanes=[1,2];
-  const placed={1:[],2:[]};
+  // CORE / LOWER / HIGH SPEED にランダム配置。隣接電線のウイルスは最低2目盛(220px)離す。
+  const lanes=[1,2,3];
+  const placed={0:[],1:[],2:[],3:[]};
   for(const lane of lanes){
     let x=900+Math.random()*500;
-    const count=10+Math.floor(Math.random()*11);
+    const count=8+Math.floor(Math.random()*9);
     for(let i=0;i<count;i++){
+      let candidate=x+650+Math.random()*900;
       let tries=0;
-      let candidate=x+650+Math.random()*1150;
-      while(tries<30){
-        const other=lane===1?placed[2]:placed[1];
-        if(other.every(v=>Math.abs(v-candidate)>=220))break;
-        candidate+=220+Math.random()*500;
+      while(tries<50){
+        const adjacent=[];
+        if(lane>0)adjacent.push(...placed[lane-1]);
+        if(lane<3)adjacent.push(...placed[lane+1]);
+        if(adjacent.every(v=>Math.abs(v-candidate)>=220))break;
+        candidate+=220+Math.random()*400;
         tries++;
       }
       x=candidate;
@@ -102,15 +104,14 @@ function generateViruses(){
   }
   state.viruses.sort((a,b)=>a.x-b.x);
 
-  // 約1800pxごとをエナジーの抽選ポイントとし、各ポイント30%の確率で生成。
-  // ウイルスと重ならない位置だけを採用し、3本すべての電線を対象にする。
-  const maxX=state.worldW-1200;
-  for(let x=1200;x<maxX;x+=1800){
-    if(Math.random()>=0.30)continue;
-    const lane=Math.floor(Math.random()*wires.length);
-    const ex=x+(Math.random()*700-350);
-    const blocked=state.viruses.some(v=>v.lane===lane && Math.abs(v.x-ex)<150);
-    if(!blocked)state.energies.push({x:ex,y:wires[lane].y,lane,r:6.84,phase:Math.random()*Math.PI*2});
+  // 目盛(110px)ごとに30%の確率でエナジーを抽選。全4本が対象。
+  for(let lane=0;lane<wires.length;lane++){
+    for(let x=1100;x<state.worldW-1200;x+=110){
+      if(Math.random()>=0.30)continue;
+      const ex=x;
+      const blocked=state.viruses.some(v=>v.lane===lane && Math.abs(v.x-ex)<120);
+      if(!blocked)state.energies.push({x:ex,y:wires[lane].y,lane,r:6.84,phase:Math.random()*Math.PI*2});
+    }
   }
   state.energies.sort((a,b)=>a.x-b.x);
 }
@@ -142,24 +143,22 @@ function checkEnergyCollection(){
   for(let i=state.energies.length-1;i>=0;i--){
     const e=state.energies[i];
     if(Math.abs(e.x-player.x)<e.r+player.r+7 && Math.abs(e.y-player.y)<e.r+player.r+7){
-      // バッテリー満タン時は、エナジーに触れても何も起こさない。
-      // エナジーも消費せず、その場に残る。
-      if(state.battery>=3) continue;
-
       state.energies.splice(i,1);
-      state.charge=Math.min(10,state.charge+5);
-      updateBatteryHud();
-      showMessage('ENERGY +50% // CHARGE');
-      if(state.charge>=10){
-        state.battery=Math.min(3,state.battery+1);
-        state.charge=0;
+      if(state.battery<3){
+        state.charge=Math.min(10,state.charge+5);
         updateBatteryHud();
-        showMessage('ENERGY // BATTERY +1');
+        showMessage('ENERGY +50% // CHARGE');
+        if(state.charge>=10){
+          state.battery=Math.min(3,state.battery+1);
+          state.charge=0;
+          updateBatteryHud();
+          showMessage('ENERGY // BATTERY +1');
+        }
       }
     }
   }
 }
-function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;player.x=160;player.y=wires[1].y;player.targetY=wires[1].y;player.phase=0;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';showMessage('3本の電線 // RUN START')}
+function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;player.x=160;player.y=wires[1].y;player.targetY=wires[1].y;player.phase=0;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';showMessage('4本の電線 // RUN START')}
 function switchWire(dir){
   const next=Math.max(0,Math.min(wires.length-1,state.wire+dir));
   if(next===state.wire)return;
@@ -168,7 +167,7 @@ function switchWire(dir){
   player.targetY=wires[next].y;
   state.wireVisual=next;
   state.wirePulse=1;
-  showMessage(next===0?'UPPER LINE':next===1?'CORE LINE':'LOWER LINE');
+  showMessage(next===0?'UPPER LINE':next===1?'CORE LINE':next===2?'LOWER LINE':'HIGH SPEED LINE');
 }
 function bindButton(id,key,fn){const e=document.getElementById(id);let pid=null;const down=ev=>{ev.preventDefault();pid=ev.pointerId;try{e.setPointerCapture(pid)}catch(_){}keys[key]=true;e.classList.add('on');if(fn)fn()};const up=ev=>{if(pid!==null&&ev.pointerId!==pid)return;ev.preventDefault();keys[key]=false;e.classList.remove('on');pid=null};e.addEventListener('pointerdown',down,{passive:false});e.addEventListener('pointerup',up,{passive:false});e.addEventListener('pointercancel',up,{passive:false});}
 bindButton('up','up',()=>switchWire(-1));
@@ -191,7 +190,7 @@ function update(dt){
   state.t+=dt;
   if(state.damageTimer>0)state.damageTimer=Math.max(0,state.damageTimer-dt);
   state.shake=Math.max(0,state.shake-dt);
-  player.x+=state.speed*dt;
+  player.x+=state.speed*(state.wire===3?3:1)*dt;
   player.phase+=dt*0.12;
   // 上下の電線切り替えを滑らかにアニメーション。約0.14秒で到達する。
   const dy=player.targetY-player.y;
@@ -224,7 +223,7 @@ function drawBackground(){
     const h=90+(i%5)*36;ctx.fillStyle='rgba(18,42,51,.42)';ctx.fillRect(x, H-150-h, 130, h);
     ctx.fillStyle='rgba(69,153,166,.08)';ctx.fillRect(x+16,H-140-h,3,h-20);ctx.fillRect(x+42,H-140-h,3,h-40);ctx.fillRect(x+78,H-140-h,3,h-10);
   }
-  ctx.fillStyle='rgba(83,220,240,.08)';ctx.font='bold 52px Arial';ctx.fillText('SECTOR 02',worldX(1600),170);ctx.font='bold 18px Arial';ctx.fillText('CONDUIT NETWORK // 03',worldX(1670),195);
+  ctx.fillStyle='rgba(83,220,240,.08)';ctx.font='bold 52px Arial';ctx.fillText('SECTOR 02',worldX(1600),170);ctx.font='bold 18px Arial';ctx.fillText('CONDUIT NETWORK // 04',worldX(1670),195);
 }
 function drawWire(y,glow,label,i){
   const x1=0,x2=state.worldW;
@@ -277,7 +276,7 @@ function drawEnergy(e){
 function drawEnergies(){for(const e of state.energies)drawEnergy(e);}
 function drawParticles(){for(const p of state.particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle='#bffcff';ctx.fillRect(worldX(p.x),p.y,2,2)}ctx.globalAlpha=1}
 function drawStations(){
-  for(let i=0;i<3;i++){
+  for(let i=0;i<wires.length;i++){
     const y=wireY(i);const sx=worldX(0);ctx.fillStyle='#09151b';ctx.fillRect(sx,y-32,46,64);ctx.strokeStyle='#4ed9eb';ctx.strokeRect(sx+.5,y-31.5,45,63);ctx.fillStyle='#5ceaff';ctx.fillRect(sx+10,y-5,26,10);
     const ex=worldX(state.worldW-42);ctx.fillStyle='#09151b';ctx.fillRect(ex,y-32,46,64);ctx.strokeStyle='#4ed9eb';ctx.strokeRect(ex+.5,y-31.5,45,63);ctx.fillStyle='#7df3ff';ctx.fillRect(ex+8,y-17,30,5);ctx.fillRect(ex+8,y-4,30,5);ctx.fillRect(ex+8,y+9,30,5);
   }
@@ -293,7 +292,7 @@ function render(){
   drawViruses();drawEnergies();drawParticles();drawPlayer();drawSwitchEffect();
   ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(0,H-150,W,150);
   ctx.strokeStyle='rgba(92,224,241,.13)';ctx.beginPath();ctx.moveTo(0,H-150);ctx.lineTo(W,H-150);ctx.stroke();
-  if(state.running){ctx.fillStyle='#6fa8b1';ctx.font='10px Arial';ctx.fillText('LINE '+String(state.wire+1).padStart(2,'0')+' / 03',W-100,88)}
+  if(state.running){ctx.fillStyle='#6fa8b1';ctx.font='10px Arial';ctx.fillText('LINE '+String(state.wire+1).padStart(2,'0')+' / 04',W-100,88)}
   ctx.restore();
 }
 function loop(now){const dt=Math.min(.035,((now-state.last)||16.7)/1000);state.last=now;if(state.running)update(dt);render();requestAnimationFrame(loop)}
