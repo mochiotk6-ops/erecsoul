@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.2</title>
+<title>ELECTRIC SOUL β2.3</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -31,7 +31,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.2</div><div id="stageTitle">STAGE 1</div><div id="status">CURRENT // AUTO RUN</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.3</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="message"></div>
 <div id="controls">
   <div id="verticalPad">
@@ -40,8 +40,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.2 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.2</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.3 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.3</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <script>
 'use strict';
 const canvas=document.getElementById('game');
@@ -50,7 +50,7 @@ let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,2);
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);canvas.width=Math.floor(W*DPR);canvas.height=Math.floor(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0)}
 addEventListener('resize',resize);resize();
 
-const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:6200,worldW:5600,particles:[],sparks:[]};
+const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:3100,worldW:100000,particles:[],sparks:[]};
 const keys={up:false,down:false};
 const wires=[
   {y:260,label:'UPPER',glow:'#56eaff'},
@@ -102,7 +102,6 @@ function update(dt){
   state.cam=Math.min(state.cam,Math.max(0,state.worldW-W*.78));
   addParticles();
   for(let i=state.particles.length-1;i>=0;i--){const p=state.particles[i];p.x+=p.vx*dt*4;p.y+=p.vy*dt*4;p.life-=dt*60;if(p.life<=0)state.particles.splice(i,1)}
-  if(player.x>state.worldW-300){state.clear=true;state.running=false;document.getElementById('clear').style.display='flex'}
 }
 
 function drawBackground(){
@@ -150,7 +149,7 @@ function render(){
   drawBackground();
   drawStations();
   wires.forEach((w,i)=>drawWire(w.y,w.glow,w.label,i));
-  drawGoal();drawParticles();drawPlayer();drawSwitchEffect();
+  drawParticles();drawPlayer();drawSwitchEffect();
   ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(0,H-150,W,150);
   ctx.strokeStyle='rgba(92,224,241,.13)';ctx.beginPath();ctx.moveTo(0,H-150);ctx.lineTo(W,H-150);ctx.stroke();
   if(state.running){ctx.fillStyle='#6fa8b1';ctx.font='10px Arial';ctx.fillText('LINE '+String(state.wire+1).padStart(2,'0')+' / 03',W-100,88)}
