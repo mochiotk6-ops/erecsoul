@@ -177,7 +177,7 @@ function generateHazardsRange(startX,endX,reset=false){
         tries++;
       }
       if(candidate>endX-120)break;
-      const red=Math.random()<0.5;
+      const red=Math.random()<0.4;
       state.viruses.push({x:candidate,y:0,laneType:type,r:11.4,phase:Math.random()*Math.PI*2,red});
       x=candidate;
     }
@@ -359,7 +359,7 @@ function regenerateLaneHazards(type,startX,endX){
         tries++;
       }
       if(candidate>endX-120)break;
-      const red=Math.random()<0.5;
+      const red=Math.random()<0.4;
       state.viruses.push({x:candidate,y:0,laneType:type,r:11.4,phase:Math.random()*Math.PI*2,red});
       x=candidate;
     }
