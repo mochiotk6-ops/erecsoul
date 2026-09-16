@@ -79,7 +79,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.25</div><div id="stageTitle">STAGE 0 // MAP 0-1</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.26</div><div id="stageTitle">STAGE 0 // MAP 0-1</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="infectionHud"><span id="infectionLabel">⚠ 充電不可</span><div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="designatedHud"><div id="designatedWarning">⚠️大電流</div><div id="designatedCount"></div></div><div id="message"></div>
 <div id="controls">
@@ -89,8 +89,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="stageSelect"><div class="stageLogo">ELECTRIC SOUL</div><div class="stageSelectSub">STAGE SELECT // β2.25</div><div class="stageList"><div class="stageBlock"><div class="stageName">STAGE 0</div><div class="mapRow"><button class="mapBtn" id="map01">①<span class="mapLabel">MAP 0-1</span></button><button class="mapBtn locked" disabled>②<span class="mapLabel">LOCKED</span></button><button class="mapBtn locked" disabled>③<span class="mapLabel">LOCKED</span></button></div></div></div></div><div id="start" style="display:none"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.25 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.25</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="stageSelect"><div class="stageLogo">ELECTRIC SOUL</div><div class="stageSelectSub">STAGE SELECT // β2.26</div><div class="stageList"><div class="stageBlock"><div class="stageName">STAGE 0</div><div class="mapRow"><button class="mapBtn" id="map01">①<span class="mapLabel">MAP 0-1</span></button><button class="mapBtn locked" disabled>②<span class="mapLabel">LOCKED</span></button><button class="mapBtn locked" disabled>③<span class="mapLabel">LOCKED</span></button></div></div></div></div><div id="start" style="display:none"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.26 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.26</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -100,17 +100,24 @@ let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,2);
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);canvas.width=Math.floor(W*DPR);canvas.height=Math.floor(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0)}
 addEventListener('resize',resize);resize();
 
-const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:850,worldW:102000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[],infectionTimer:0,infectionMax:0,infectionFade:0,infectionType:'',designated:{phase:'idle',targetX:null,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0},shockTimer:0,shockMax:0,wireExpansion:{phase:'idle',startX:0,progress:0,done:false,restageProgress:0,oldTopY:260,newTopY:185,diagStartX:0,diagEndX:0}};
+const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:850,worldW:102000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[],infectionTimer:0,infectionMax:0,infectionFade:0,infectionType:'',designated:{phase:'idle',targetX:null,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0},shockTimer:0,shockMax:0};
 const keys={up:false,down:false};
-// β2.22: 電線は5本固定（1〜3通常 / 4チャージ / 5ハイスピード）。
+// β2.26: 電線は最大7枠の固定スペース内で増減する。
 // ここを書き換えるだけで、距離ごとの電線構成を自由に設計できる。
 // type は下記 WIRE_TYPES の名前を指定する。
 // 例：['UPPER','CORE','LOWER','HIGH SPEED']
+// β2.26：画面内には常に7本分の固定スペースを確保する。
+// 従来の4本は中央4枠（2〜5）に配置し、電線が増減しても
+// 電線間隔・カメラ位置を再計算しない。上下の空き枠へ追加／削除する。
+const WIRE_SLOT_TOP=60;
+const WIRE_SLOT_STEP=100;
+const WIRE_SLOT_COUNT=7;
+const WIRE_SLOT_Y=Array.from({length:WIRE_SLOT_COUNT},(_,i)=>WIRE_SLOT_TOP+WIRE_SLOT_STEP*i);
+
 const STAGE_WIRE_LAYOUTS=[
-  // MAP 0-1：開始時は4本。UPPER電線は100m地点から存在するが、
-  // プレイ可能になるまでは背景演出としてのみ表示する。
-  {until:112,types:['CORE','LOWER','CHARGE','HIGH SPEED']},
-  {until:Infinity,types:['UPPER','CORE','LOWER','CHARGE','HIGH SPEED']}
+  // MAP 0-1：開始時は中央4本。100mでUPPERを上から2番目の固定枠へ追加し、既存4本は1枠下へ配置。
+  {until:100,types:['CORE','LOWER','CHARGE','HIGH SPEED'],slots:[2,3,4,5]},
+  {until:Infinity,types:['UPPER','CORE','LOWER','CHARGE','HIGH SPEED'],slots:[2,3,4,5,6]}
 ];
 
 const WIRE_TYPES={
@@ -129,23 +136,28 @@ function layoutForDistance(d){
   }
   return STAGE_WIRE_LAYOUTS[STAGE_WIRE_LAYOUTS.length-1];
 }
-function buildWires(types){
-  const top=260,bottom=560;
-  const step=types.length===1?0:(bottom-top)/(types.length-1);
+function buildWires(types,slots){
   return types.map((type,i)=>{
     const base=WIRE_TYPES[type]||WIRE_TYPES.CORE;
-    return {type,y:types.length===1?(top+bottom)/2:top+step*i,label:base.label,glow:base.glow,chargeMul:base.chargeMul||1,speedMul:base.speedMul||1};
+    const slot=(slots&&slots[i]!=null)?slots[i]:(2+i);
+    return {
+      type,
+      slot,
+      y:WIRE_SLOT_Y[Math.max(0,Math.min(WIRE_SLOT_COUNT-1,slot))],
+      label:base.label,
+      glow:base.glow,
+      chargeMul:base.chargeMul||1,
+      speedMul:base.speedMul||1
+    };
   });
 }
 function applyStageWireLayout(force=false){
-  // 電線追加演出中は4本のプレイ可能電線を維持する。
-  if(state.wireExpansion.phase!=='idle' && !state.wireExpansion.done)return;
   const d=distanceMeters();
   const layout=layoutForDistance(d);
-  const key=layout.types.join('|');
+  const key=layout.types.join('|')+'@'+layout.slots.join(',');
   if(!force && key===currentLayoutKey)return;
   const oldType=wires[state.wire]?.type;
-  wires=buildWires(layout.types);
+  wires=buildWires(layout.types,layout.slots);
   currentLayoutKey=key;
   let next=wires.findIndex(w=>w.type===oldType);
   if(next<0)next=Math.max(0,Math.min(wires.length-1,state.wire));
@@ -154,71 +166,6 @@ function applyStageWireLayout(force=false){
   player.targetY=wires[next].y;
   if(!force)player.y=wires[next].y;
 }
-function startWireExpansion(){
-  if(state.wireExpansion.phase!=='idle' || distanceMeters()<100)return;
-  // 5本目のUPPER電線そのものは100m地点に最初から存在する。
-  // 演出として、画面下方から100m地点のUPPERへ向かう斜めの線だけを背景に表示する。
-  state.wireExpansion={
-    phase:'extending',
-    startX:player.x,
-    progress:0,
-    done:false,
-    restageProgress:0,
-    oldTopY:wires[0]?.y??260,
-    newTopY:185,
-    // 斜め線は100m地点から左下方向へ伸びているように見せる。
-    diagStartX:160+100*110-1200,
-    diagEndX:160+100*110
-  };
-  showMessage('100m // NEW LINE DETECTED');
-}
-function updateWireExpansion(dt){
-  const ex=state.wireExpansion;
-  if(ex.phase==='idle'){
-    if(distanceMeters()>=100)startWireExpansion();
-    return;
-  }
-  if(ex.phase==='extending'){
-    // 100m地点にある5本目を見せるため、カメラをゆっくり引く。
-    // 斜め線は「伸びてくる」のではなく、最初からそこにある背景。
-    ex.progress=Math.min(1,(distanceMeters()-100)/12);
-    if(ex.progress>=1){
-      ex.phase='restage';
-      ex.restageProgress=0;
-      currentLayoutKey='';
-      // 5本目は100m地点から存在しているが、ここまでは操作対象外。
-      const oldType=wires[state.wire]?.type;
-      const nextWires=buildWires(['UPPER','CORE','LOWER','CHARGE','HIGH SPEED']);
-      const oldIndex=nextWires.findIndex(w=>w.type===oldType);
-      state.wire=oldIndex>=0?oldIndex:Math.min(nextWires.length-1,state.wire+1);
-      state.wireVisual=state.wire;
-      wires=nextWires;
-      player.targetY=wires[state.wire].y;
-      ex.done=true;
-    }
-  }else if(ex.phase==='restage'){
-    // 既存4本を5本の間隔へ滑らかに再配置。UPPERは背景として先に見えている。
-    ex.restageProgress=Math.min(1,ex.restageProgress+dt/0.75);
-    const t=ex.restageProgress*ex.restageProgress*(3-2*ex.restageProgress);
-    const targetYs=[260,335,410,485,560];
-    const oldYs=[260,360,460,560];
-    for(let i=0;i<4;i++){
-      const wi=i+1;
-      if(wires[wi])wires[wi].y=oldYs[i]+(targetYs[wi]-oldYs[i])*t;
-    }
-    if(wires[0])wires[0].y=targetYs[0];
-    player.targetY=wires[state.wire].y;
-    if(ex.restageProgress>=1){
-      ex.phase='complete';
-      currentLayoutKey='UPPER|CORE|LOWER|CHARGE|HIGH SPEED';
-      wires=buildWires(['UPPER','CORE','LOWER','CHARGE','HIGH SPEED']);
-      player.targetY=wires[state.wire].y;
-      showMessage('NEW LINE // ONLINE');
-    }
-  }
-}
-function wireExpansionActive(){return state.wireExpansion.phase==='extending'||state.wireExpansion.phase==='restage';}
-function wireExpansionComplete(){return state.wireExpansion.phase==='complete';}
 
 const player={x:160,y:410,targetY:410,r:13,phase:0};
 
@@ -272,7 +219,7 @@ function generateHazardsRange(startX,endX,reset=false){
   state.energies.sort((a,b)=>a.x-b.x);
 }
 function generateViruses(){
-  // β2.23.8: 5本固定（1〜3通常 / 4チャージ / 5ハイスピード）。
+  // β2.26: ステージレイアウトに応じた電線構成。7枠の固定スペースを使用。
   // 同じ電線だけでなく、隣り合う上下の電線同士も2目盛(220px)以上離す。
   generateHazardsRange(900,Math.min(state.worldW-1200,Math.floor(state.worldW/110)*110),true);
 }
@@ -291,7 +238,7 @@ function wireAtWorldX(x,type){
   const layout=layoutForDistance(d);
   const idx=layout.types.indexOf(type);
   if(idx<0)return null;
-  const temp=buildWires(layout.types);
+  const temp=buildWires(layout.types,layout.slots);
   return temp[idx];
 }
 function entityY(entity){
@@ -408,7 +355,7 @@ function checkEnergyCollection(){
     }
   }
 }
-function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionMax=0;state.infectionFade=0;state.infectionType='';state.shockTimer=0;state.shockMax=0;state.designated={phase:'idle',targetX:160+10*110,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0};state.wireExpansion={phase:'idle',startX:0,progress:0,done:false,restageProgress:0,oldTopY:260,newTopY:185,diagStartX:0,diagEndX:0};player.x=160;player.phase=0;currentLayoutKey='';applyStageWireLayout(true);player.y=wires[state.wire].y;player.targetY=player.y;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('stageSelect').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('infectionHud').style.display='none';document.getElementById('infectionHud').style.opacity='1';document.getElementById('infectionHud').classList.remove('infectionFlash');document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';document.getElementById('infectionLabel').textContent='⚠ 充電不可';document.getElementById('designatedHud').style.display='none';document.getElementById('designatedWarning').className='';document.getElementById('designatedCount').className='';document.getElementById('designatedCount').textContent='';document.getElementById('gameOverDistance').textContent='0 m';showMessage(wires.length+'本の電線 // RUN START')}
+function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionMax=0;state.infectionFade=0;state.infectionType='';state.shockTimer=0;state.shockMax=0;state.designated={phase:'idle',targetX:160+10*110,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0};player.x=160;player.phase=0;currentLayoutKey='';applyStageWireLayout(true);player.y=wires[state.wire].y;player.targetY=player.y;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('stageSelect').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('infectionHud').style.display='none';document.getElementById('infectionHud').style.opacity='1';document.getElementById('infectionHud').classList.remove('infectionFlash');document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';document.getElementById('infectionLabel').textContent='⚠ 充電不可';document.getElementById('designatedHud').style.display='none';document.getElementById('designatedWarning').className='';document.getElementById('designatedCount').className='';document.getElementById('designatedCount').textContent='';document.getElementById('gameOverDistance').textContent='0 m';showMessage(wires.length+'本の電線 // RUN START')}
 function clearDesignatedHazards(){
   if(state.designated.lane<0)return;
   const targetType=wires[state.designated.lane]?.type;
@@ -583,8 +530,6 @@ function updateDesignated(dt){
 }
 function switchWire(dir){
   if(state.shockTimer>0 || !state.running)return;
-  // 新しいUPPER電線が完成するまでは、演出中の斜め線へ移動できない。
-  if(wireExpansionActive() && state.wire===1 && dir<0)return;
   const next=Math.max(0,Math.min(wires.length-1,state.wire+dir));
   if(next===state.wire)return;
   state.wire=next;
@@ -649,7 +594,6 @@ function update(dt){
   state.shake=Math.max(0,state.shake-dt);
   // 100mで、元々100m地点にあるUPPER電線を見せる演出を開始する。
   extendWorldIfNeeded();
-  updateWireExpansion(dt);
   applyStageWireLayout();
   // β2.23.8: 視界不良中もトールの速度は通常の100%。電線固有の速度補正は維持する。
   const visionSpeedMul=(state.infectionTimer>0 && state.infectionType==='vision')?1:1;
@@ -776,37 +720,6 @@ function drawWire(y,glow,label,i){
   ctx.font='10px Arial';
   ctx.fillText(label,worldX(40),y-16);
 }
-function drawWireExpansion(){
-  const ex=state.wireExpansion;
-  if(ex.phase==='idle'||ex.phase==='complete')return;
-  // 5本目は100m地点に元々ある。ここでは「つながっている斜め線」だけを背景として描く。
-  // 斜め線・その演出部分には当たり判定も電線切り替え判定もない。
-  const y0=560;
-  const y1=185;
-  const junctionX=160+100*110;
-  const startX=junctionX-1200;
-  const sx=worldX(startX);
-  const exx=worldX(junctionX);
-  ctx.save();
-  ctx.lineCap='round';
-  ctx.shadowBlur=16;
-  ctx.shadowColor='#bcefff';
-  ctx.strokeStyle='#bcefff';
-  ctx.lineWidth=7;
-  ctx.beginPath();ctx.moveTo(sx,y0);ctx.lineTo(exx,y1);ctx.stroke();
-  ctx.shadowBlur=0;
-  ctx.strokeStyle='#e6fbff';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(sx,y0);ctx.lineTo(exx,y1);ctx.stroke();
-  // 100m地点から右へ伸びる5本目のUPPER。まだ操作対象にはしない。
-  const revealAlpha=Math.max(.15,Math.min(1,ex.progress));
-  ctx.globalAlpha=revealAlpha;
-  ctx.shadowBlur=16;ctx.shadowColor='#bcefff';ctx.strokeStyle='#bcefff';ctx.lineWidth=7;
-  ctx.beginPath();ctx.moveTo(exx,y1);ctx.lineTo(worldX(state.worldW),y1);ctx.stroke();
-  ctx.shadowBlur=0;ctx.strokeStyle='#e6fbff';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(exx,y1);ctx.lineTo(worldX(state.worldW),y1);ctx.stroke();
-  ctx.globalAlpha=1;
-  ctx.restore();
-}
 function drawPlayer(){
   const y=player.y;const x=worldX(player.x);
   if(state.damageTimer>0 && Math.floor(state.damageTimer*12)%2===0)return;
@@ -908,17 +821,13 @@ function drawGoal(){const x=worldX(state.worldW-220);for(let i=0;i<5;i++){ctx.fi
 function render(){
   ctx.save();
   if(state.shake>0){const amp=8*(state.shake/.65);ctx.translate((Math.random()-.5)*amp,(Math.random()-.5)*amp);}
-  // 演出中は、100m地点のUPPERへ視線を合わせるためゆっくりカメラを引く。
   drawBackground();
   ctx.save();
-  // 100m地点のUPPERが見えるように0.50倍→0.43倍へゆっくり引く。
-  let viewScale=.5;
-  if(wireExpansionActive())viewScale=.5-.07*(state.wireExpansion.progress||0);
-  else if(wireExpansionComplete())viewScale=.43;
+  // β2.26：7本分の固定スペースを常に使うため、電線増減でズームを変更しない。
+  const viewScale=.5;
   ctx.translate(W*.12,H*.25);ctx.scale(viewScale,viewScale);
   drawStations();
   wires.forEach((w,i)=>drawWire(w.y,w.glow,w.label,i));
-  drawWireExpansion();
   drawViruses();drawEnergies();drawParticles();drawPlayer();drawSwitchEffect();
   ctx.restore();
   if(state.infectionType==='vision' && state.infectionTimer>0){
