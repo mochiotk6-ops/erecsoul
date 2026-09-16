@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.23.4</title>
+<title>ELECTRIC SOUL β2.23.5</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -68,9 +68,9 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.23.4</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.23.5</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
-<div id="infectionHud"><span id="infectionLabel">⚠ 充電不可</span><div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="designatedHud"><div id="designatedWarning">⚠️指定電線</div><div id="designatedCount"></div></div><div id="message"></div>
+<div id="infectionHud"><span id="infectionLabel">⚠ 充電不可</span><div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="designatedHud"><div id="designatedWarning">⚠️大電流</div><div id="designatedCount"></div></div><div id="message"></div>
 <div id="controls">
   <div id="verticalPad">
     <div class="dir" id="up">▲</div>
@@ -78,8 +78,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.23.4 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.23.4</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.23.5 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.23.5</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -335,29 +335,61 @@ function clearDesignatedHazards(){
   if(state.designated.lane<0)return;
   const targetType=wires[state.designated.lane]?.type;
   if(!targetType)return;
+  // 大電流発動中に指定電線へ残っているマルウェアをいったん除去。
+  // 終了時にはこの電線だけを通常生成ルールで再生成する。
   state.viruses=state.viruses.filter(v=>v.laneType!==targetType);
+  state.energies=state.energies.filter(e=>e.laneType!==targetType);
+}
+function regenerateLaneHazards(type,startX,endX){
+  if(!type || endX<=startX)return;
+  // 通常の generateHazardsRange と同じルールで、指定電線だけを再生成する。
+  if(type!=='UPPER'){
+    let x=startX+Math.random()*220;
+    const count=Math.max(0,Math.ceil((endX-startX)/900));
+    for(let i=0;i<count;i++){
+      let candidate=Math.min(endX-180,x+500+Math.random()*700);
+      let tries=0;
+      while(tries<80 && !virusSpacingOK(type,candidate,220)){
+        candidate+=220+Math.random()*320;
+        tries++;
+      }
+      if(candidate>endX-120)break;
+      const red=Math.random()<0.5;
+      state.viruses.push({x:candidate,y:0,laneType:type,r:11.4,phase:Math.random()*Math.PI*2,red});
+      x=candidate;
+    }
+  }
+  for(let x=Math.ceil(startX/110)*110;x<endX;x+=110){
+    if(Math.random()>=0.05)continue;
+    const blocked=state.viruses.some(v=>v.laneType===type && Math.abs(v.x-x)<120);
+    if(!blocked)state.energies.push({x,y:0,laneType:type,r:6.84,phase:Math.random()*Math.PI*2});
+  }
+  state.viruses.sort((a,b)=>a.x-b.x);
+  state.energies.sort((a,b)=>a.x-b.x);
 }
 function endDesignated(success=false){
-  // タイムアップ後の3秒保持が終わった時点でのみ、指定電線のマルウェア生成を再開する。
   const finishedLane=state.designated.lane;
+  const finishedType=wires[finishedLane]?.type;
   state.designated.phase='idle';
   state.designated.timer=0;
   state.designated.maxTime=0;
   state.designated.elapsed=0;
   state.designated.penaltyTimer=0;
+  // 一度きりのイベントなので、ここで次回発動位置を無効化する。
+  state.designated.targetX=null;
   state.designated.lane=-1;
   const hud=document.getElementById('designatedHud');
   hud.style.display='none';
   document.getElementById('designatedWarning').className='';
   document.getElementById('designatedCount').textContent='';
 
-  // プレイヤーの少し先から先の区間を生成し、元の5本の電線すべてで
-  // 通常どおりウイルス等のマルウェアが発生できる状態へ戻す。
+  // 大電流終了後は指定されていた電線だけを、他の電線と同じ通常ルールで再生成。
+  // これによりウイルス・エナジーとも通常時と同じ抽選に戻る。
   const resumeStart=Math.max(900,player.x+220);
   const resumeEnd=Math.min(state.worldW-1200,player.x+1800);
-  if(resumeEnd>resumeStart)generateHazardsRange(resumeStart,resumeEnd,false);
+  if(finishedType && resumeEnd>resumeStart)regenerateLaneHazards(finishedType,resumeStart,resumeEnd);
 
-  if(success)showMessage('指定電線 // SUCCESS');
+  if(success)showMessage('大電流 // SUCCESS');
 }
 function triggerDesignated(){
   if(!state.running || state.designated.phase!=='warning')return;
@@ -375,7 +407,7 @@ function triggerDesignated(){
   count.textContent=state.designated.timer.toFixed(1)+'s';
   count.className='';
   hud.style.display='block';
-  showMessage('指定電線を選択 // '+(state.designated.lane+1)+'本目');
+  showMessage('大電流を選択 // '+(state.designated.lane+1)+'本目');
 }
 function startDesignatedWarning(){
   if(!state.running || state.designated.phase!=='idle' || state.designated.targetX===null)return;
@@ -398,8 +430,8 @@ function updateDesignated(dt){
   }
   if(state.designated.phase==='warning' && player.x>=state.designated.targetX)triggerDesignated();
   if(state.designated.phase==='active'){
-    // 指定電線に移動してもイベントは成功終了しない。カウントダウンは最後まで続く。
-    // 指定電線そのものの位置も変更しない。
+    // 大電流に移動してもイベントは成功終了しない。カウントダウンは最後まで続く。
+    // 大電流そのものの位置も変更しない。
     state.designated.elapsed+=dt;
     state.designated.timer=Math.max(0,state.designated.timer-dt);
     const count=document.getElementById('designatedCount');
@@ -410,11 +442,11 @@ function updateDesignated(dt){
       state.designated.penaltyTimer=3;
       count.textContent='TIME UP';
       count.className='';
-      showMessage('指定電線 TIME UP');
+      showMessage('大電流 TIME UP');
     }
   }else if(state.designated.phase==='penalty'){
     // タイムアップ後、このオレンジ/黒の状態を3秒間そのまま保持する。
-    // この3秒間は指定電線側の新規マルウェア生成も停止する。
+    // この3秒間は大電流側の新規マルウェア生成も停止する。
     // 黒い電線に移動した瞬間ゲームオーバー。
     if(state.wire!==state.designated.lane){
       state.battery=0;
@@ -425,9 +457,12 @@ function updateDesignated(dt){
       endDesignated(false);
       return;
     }
+    // タイムアップ後3秒間は表示上のカウントダウンを行わない。
+    // 内部タイマーだけで3秒を計測し、表示は TIME UP のまま固定する。
     state.designated.penaltyTimer=Math.max(0,state.designated.penaltyTimer-dt);
+    document.getElementById('designatedCount').textContent='TIME UP';
+    document.getElementById('designatedCount').className='';
     if(state.designated.penaltyTimer<=0)endDesignated(false);
-    else document.getElementById('designatedCount').textContent=state.designated.penaltyTimer.toFixed(1)+'s';
   }
 }
 function switchWire(dir){
@@ -531,7 +566,7 @@ function drawWire(y,glow,label,i){
   const active=state.designated.phase==='active' && designated;
   let blinkOn=true;
   if(active){
-    // 指定電線は0.25秒周期で、元の電線色とオレンジを交互に点滅。
+    // 大電流は0.25秒周期で、元の電線色とオレンジを交互に点滅。
     blinkOn=(Math.floor(state.designated.elapsed/0.25)%2)===0;
   }
 
@@ -555,6 +590,29 @@ function drawWire(y,glow,label,i){
   line(0,y,state.worldW,y,bodyGlow,5);
   ctx.shadowBlur=0;
   line(0,y,state.worldW,y,bodyCore,1);
+  // タイムアップ後の黒電線には、薄い灰色のビリビリした電流を流す。
+  if(blackout){
+    ctx.save();
+    ctx.lineWidth=1.4;
+    ctx.strokeStyle='rgba(205,211,214,.48)';
+    ctx.shadowBlur=5;
+    ctx.shadowColor='rgba(190,200,205,.28)';
+    const flow=((state.t*150)%110);
+    for(let base=Math.floor(state.cam/110)*110-110+flow;base<state.cam+W*2;base+=110){
+      const sx=worldX(base);
+      const yy=y-1;
+      ctx.beginPath();
+      ctx.moveTo(sx,yy);
+      ctx.lineTo(sx+9,yy-4);
+      ctx.lineTo(sx+17,yy+4);
+      ctx.lineTo(sx+27,yy-5);
+      ctx.lineTo(sx+38,yy+3);
+      ctx.lineTo(sx+48,yy);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
 
   for(let x=Math.floor(state.cam/110)*110;x<state.cam+W*2+110;x+=110){
     const sx=worldX(x);
