@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.23.9（速度修正版）</title>
+<title>ELECTRIC SOUL β2.24 // STAGE SELECT</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -27,12 +27,23 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 .dir{width:118px;height:60px;border:2px solid rgba(105,233,255,.78);border-radius:18px;background:rgba(4,18,24,.9);color:#c8fbff;font-size:34px;line-height:54px;text-align:center;box-shadow:0 0 20px rgba(55,225,255,.12),inset 0 0 18px rgba(55,225,255,.07);user-select:none;touch-action:none;-webkit-user-select:none}
 .dir.on{background:rgba(35,128,148,.62);box-shadow:0 0 28px rgba(75,232,255,.5),inset 0 0 20px rgba(75,232,255,.18);transform:scale(.96)}
 #hint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:11px;line-height:1.5;color:#7fa8b0;letter-spacing:1px;text-shadow:0 0 8px rgba(70,220,240,.2);pointer-events:none;white-space:nowrap}
-#start,#clear{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(circle at 50% 45%,rgba(12,54,65,.45),rgba(1,6,9,.98) 68%);z-index:20}
+#start,#clear,#stageSelect{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(circle at 50% 45%,rgba(12,54,65,.45),rgba(1,6,9,.98) 68%);z-index:20}
 .logo{font-size:32px;font-weight:900;letter-spacing:5px;text-shadow:0 0 14px #55edff,0 0 34px rgba(65,220,255,.4)}
 .sub{margin-top:8px;font-size:12px;color:#76a5ad;letter-spacing:3px}
 .startBtn{margin-top:30px;min-width:190px;padding:15px 24px;border:1px solid #63eaff;border-radius:8px;background:#06151b;color:#dfffff;font-weight:800;letter-spacing:3px;font-size:14px;box-shadow:0 0 20px rgba(70,230,255,.14);touch-action:manipulation}
 .startBtn:active{transform:scale(.97);background:#0b2730}
 #clear{display:none}
+#stageSelect{display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(circle at 50% 42%,rgba(12,54,65,.48),rgba(1,6,9,.98) 70%);z-index:20}
+.stageLogo{font-size:30px;font-weight:900;letter-spacing:5px;text-shadow:0 0 14px #55edff,0 0 34px rgba(65,220,255,.4)}
+.stageSelectSub{margin-top:8px;font-size:11px;color:#76a5ad;letter-spacing:3px}
+.stageList{margin-top:28px;width:min(88vw,420px);display:flex;flex-direction:column;gap:18px}
+.stageBlock{border:1px solid rgba(94,238,255,.32);border-radius:10px;padding:16px 14px;background:rgba(3,14,19,.72);box-shadow:inset 0 0 20px rgba(70,230,255,.04)}
+.stageName{font-size:15px;font-weight:800;letter-spacing:3px;color:#9cefff;margin-bottom:12px}
+.mapRow{display:flex;gap:10px;flex-wrap:wrap}
+.mapBtn{width:58px;height:58px;border:1px solid #63eaff;border-radius:8px;background:#06151b;color:#dfffff;font-weight:900;font-size:20px;box-shadow:0 0 16px rgba(70,230,255,.12);touch-action:manipulation}
+.mapBtn:active{transform:scale(.95);background:#0b2730}
+.mapBtn.locked{border-color:rgba(112,145,151,.28);color:#50676b;background:rgba(4,10,13,.65);box-shadow:none}
+.mapLabel{display:block;margin-top:4px;font-size:8px;letter-spacing:1px;color:#71959c;font-weight:700}
 #gameOver{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(2,5,8,.82);backdrop-filter:blur(2px);z-index:30}
 .gameOverTitle{font-size:28px;font-weight:900;letter-spacing:5px;color:#ff6b75;text-shadow:0 0 16px rgba(255,72,84,.7)}
 .gameOverSub{margin-top:10px;font-size:11px;color:#a9c0c4;letter-spacing:2px}
@@ -68,7 +79,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.23.8</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.24</div><div id="stageTitle">STAGE 0 // MAP 0-1</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="infectionHud"><span id="infectionLabel">⚠ 充電不可</span><div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="designatedHud"><div id="designatedWarning">⚠️大電流</div><div id="designatedCount"></div></div><div id="message"></div>
 <div id="controls">
@@ -78,8 +89,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.23.8 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.23.8</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="stageSelect"><div class="stageLogo">ELECTRIC SOUL</div><div class="stageSelectSub">STAGE SELECT // β2.24</div><div class="stageList"><div class="stageBlock"><div class="stageName">STAGE 0</div><div class="mapRow"><button class="mapBtn" id="map01">①<span class="mapLabel">MAP 0-1</span></button><button class="mapBtn locked" disabled>②<span class="mapLabel">LOCKED</span></button><button class="mapBtn locked" disabled>③<span class="mapLabel">LOCKED</span></button></div></div></div></div><div id="start" style="display:none"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.24 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.24</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -330,7 +341,7 @@ function checkEnergyCollection(){
     }
   }
 }
-function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionMax=0;state.infectionFade=0;state.infectionType='';state.shockTimer=0;state.shockMax=0;state.designated={phase:'idle',targetX:160+10*110,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0};player.x=160;player.phase=0;currentLayoutKey='';applyStageWireLayout(true);player.y=wires[state.wire].y;player.targetY=player.y;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('infectionHud').style.display='none';document.getElementById('infectionHud').style.opacity='1';document.getElementById('infectionHud').classList.remove('infectionFlash');document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';document.getElementById('infectionLabel').textContent='⚠ 充電不可';document.getElementById('designatedHud').style.display='none';document.getElementById('designatedWarning').className='';document.getElementById('designatedCount').className='';document.getElementById('designatedCount').textContent='';document.getElementById('gameOverDistance').textContent='0 m';showMessage(wires.length+'本の電線 // RUN START')}
+function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionMax=0;state.infectionFade=0;state.infectionType='';state.shockTimer=0;state.shockMax=0;state.designated={phase:'idle',targetX:160+10*110,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0};player.x=160;player.phase=0;currentLayoutKey='';applyStageWireLayout(true);player.y=wires[state.wire].y;player.targetY=player.y;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('stageSelect').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('infectionHud').style.display='none';document.getElementById('infectionHud').style.opacity='1';document.getElementById('infectionHud').classList.remove('infectionFlash');document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';document.getElementById('infectionLabel').textContent='⚠ 充電不可';document.getElementById('designatedHud').style.display='none';document.getElementById('designatedWarning').className='';document.getElementById('designatedCount').className='';document.getElementById('designatedCount').textContent='';document.getElementById('gameOverDistance').textContent='0 m';showMessage(wires.length+'本の電線 // RUN START')}
 function clearDesignatedHazards(){
   if(state.designated.lane<0)return;
   const targetType=wires[state.designated.lane]?.type;
@@ -529,6 +540,7 @@ addEventListener('keyup',e=>{if(e.code==='ArrowUp')keys.up=false;if(e.code==='Ar
 document.getElementById('startBtn').addEventListener('click',reset);
 document.getElementById('restartBtn').addEventListener('click',reset);
 document.getElementById('gameOverBtn').addEventListener('click',reset);
+document.getElementById('map01').addEventListener('click',reset);
 
 function worldX(x){return x-state.cam}
 function distanceMeters(){return Math.max(0,Math.floor((player.x-160)/110));}
