@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.20</title>
+<title>ELECTRIC SOUL β2.21.2</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -61,7 +61,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.20</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.21</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="infectionHud"><span id="infectionLabel">⚠ 充電不可</span><div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="message"></div>
 <div id="controls">
@@ -71,8 +71,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.20 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.20</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.21 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.21</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -86,18 +86,19 @@ const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wire
 const keys={up:false,down:false};
 const wires=[
   {y:260,label:'UPPER',glow:'#56eaff'},
-  {y:360,label:'CORE',glow:'#7cf2ff'},
-  {y:460,label:'LOWER',glow:'#48d9f3'},
+  {y:335,label:'CORE',glow:'#7cf2ff'},
+  {y:410,label:'LOWER',glow:'#48d9f3'},
+  {y:485,label:'CHARGE',glow:'#35e23c',chargeMul:1.7},
   {y:560,label:'HIGH SPEED',glow:'#ff4055',speedMul:2}
 ];
-const player={x:160,y:360,targetY:360,r:13,phase:0};
+const player={x:160,y:335,targetY:335,r:13,phase:0};
 
 function showMessage(text){const e=document.getElementById('message');e.textContent=text;e.style.opacity=1;clearTimeout(showMessage.timer);showMessage.timer=setTimeout(()=>e.style.opacity=0,1100)}
 function generateViruses(){
   state.viruses.length=0;
   state.energies.length=0;
-  // CORE / LOWER / HIGH SPEED にランダム配置。隣接電線のウイルスは最低2目盛(220px)離す。
-  const lanes=[1,2,3];
+  // CORE / LOWER / CHARGE / HIGH SPEED にランダム配置。隣接電線のウイルスは最低2目盛(220px)離す。
+  const lanes=[1,2,3,4];
   const placed={0:[],1:[],2:[],3:[]};
   for(const lane of lanes){
     let x=900+Math.random()*500;
@@ -121,7 +122,7 @@ function generateViruses(){
   }
   state.viruses.sort((a,b)=>a.x-b.x);
 
-  // 目盛(110px)ごとに5%の確率でエナジーを抽選。全4本が対象。
+  // 目盛(110px)ごとに5%の確率でエナジーを抽選。全5本が対象。
   for(let lane=0;lane<wires.length;lane++){
     for(let x=1100;x<state.worldW-1200;x+=110){
       if(Math.random()>=0.05)continue;
@@ -141,7 +142,7 @@ function updateBatteryHud(){
   const active=state.battery<3;
   document.getElementById('chargeFill').style.width=(active?Math.min(100,state.charge/10*100):0)+'%';
 }
-// β2.20: 充電不可7秒、視界不良/操作不良5秒
+// β2.21.1: 充電不可7秒、視界不良/操作不良5秒
 function startInfection(type){
   state.infectionType=type;
   state.infectionTimer=(type==='charging'?7:5);
@@ -191,7 +192,7 @@ function damage(red=false){
   if(red){
     // 感染中は追加ダメージは受けるが、感染効果は重複・上書きしない。
     if(state.infectionTimer<=0){
-      const roll=Math.random(); // β2.20: 34% / 33% / 33%
+      const roll=Math.random(); // β2.21: 34% / 33% / 33%
       if(roll<0.34)startInfection('charging');
       else if(roll<0.67)startInfection('vision');
       else startInfection('control');
@@ -237,7 +238,7 @@ function checkEnergyCollection(){
     }
   }
 }
-function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionMax=0;state.infectionFade=0;state.infectionType='';player.x=160;player.y=wires[1].y;player.targetY=wires[1].y;player.phase=0;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('infectionHud').style.display='none';document.getElementById('infectionHud').style.opacity='1';document.getElementById('infectionHud').classList.remove('infectionFlash');document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';document.getElementById('infectionLabel').textContent='⚠ 充電不可';document.getElementById('gameOverDistance').textContent='0 m';showMessage('4本の電線 // RUN START')}
+function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionMax=0;state.infectionFade=0;state.infectionType='';player.x=160;player.y=wires[1].y;player.targetY=wires[1].y;player.phase=0;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('infectionHud').style.display='none';document.getElementById('infectionHud').style.opacity='1';document.getElementById('infectionHud').classList.remove('infectionFlash');document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';document.getElementById('infectionLabel').textContent='⚠ 充電不可';document.getElementById('gameOverDistance').textContent='0 m';showMessage('5本の電線 // RUN START')}
 function switchWire(dir){
   const next=Math.max(0,Math.min(wires.length-1,state.wire+dir));
   if(next===state.wire)return;
@@ -246,7 +247,7 @@ function switchWire(dir){
   player.targetY=wires[next].y;
   state.wireVisual=next;
   state.wirePulse=1;
-  showMessage(next===0?'UPPER LINE':next===1?'CORE LINE':next===2?'LOWER LINE':'HIGH SPEED LINE');
+  showMessage(next===0?'UPPER LINE':next===1?'CORE LINE':next===2?'LOWER LINE':next===3?'CHARGE LINE':'HIGH SPEED LINE');
 }
 function bindButton(id,key,fn){const e=document.getElementById(id);let pid=null;const down=ev=>{ev.preventDefault();pid=ev.pointerId;try{e.setPointerCapture(pid)}catch(_){}keys[key]=true;e.classList.add('on');if(fn)fn()};const up=ev=>{if(pid!==null&&ev.pointerId!==pid)return;ev.preventDefault();keys[key]=false;e.classList.remove('on');pid=null};e.addEventListener('pointerdown',down,{passive:false});e.addEventListener('pointerup',up,{passive:false});e.addEventListener('pointercancel',up,{passive:false});}
 bindButton('up','up',()=>switchWire(state.infectionType==='control'?1:-1));
@@ -290,7 +291,9 @@ function update(dt){
   }
   if(state.infectionFade>0)state.infectionFade=Math.max(0,state.infectionFade-dt/0.7);
   state.shake=Math.max(0,state.shake-dt);
-  const moveSpeed=state.speed*speedProgress()*(state.wire===3?2:1); player.x+=moveSpeed*dt;
+  // β2.21.2: 視界不良中はトールの速度を通常の115%にする。電線固有の速度補正も維持する。
+  const visionSpeedMul=(state.infectionTimer>0 && state.infectionType==='vision')?1.15:1;
+  const moveSpeed=state.speed*speedProgress()*(wires[state.wire].speedMul||1)*visionSpeedMul; player.x+=moveSpeed*dt;
   player.phase+=dt*0.12;
   // 上下の電線切り替えを滑らかにアニメーション。約0.14秒で到達する。
   const dy=player.targetY-player.y;
@@ -302,7 +305,8 @@ function update(dt){
   state.cam=Math.max(0,player.x-W*.20);
   state.cam=Math.min(state.cam,Math.max(0,state.worldW-W*.78));
   if(state.battery<3 && !(state.infectionTimer>0 && state.infectionType==='charging')){
-    state.charge+=dt;
+    // CHARGE電線では通常の170%の速度で充電する。充電不可感染中は従来通り停止。
+    state.charge+=dt*(wires[state.wire].chargeMul||1);
     if(state.charge>=10){state.battery=Math.min(3,state.battery+1);state.charge=0;updateBatteryHud();showMessage('BATTERY +1 // CHARGED');}
   }else{state.charge=0;}
   updateBatteryHud();
@@ -414,8 +418,8 @@ function render(){
   drawViruses();drawEnergies();drawParticles();drawPlayer();drawSwitchEffect();
   ctx.restore();
   if(state.infectionType==='vision' && state.infectionTimer>0){
-    // 視界不良：トールから半径3目盛だけ通常表示。
-    // 1目盛=110pxワールド、描画倍率50%なので、3目盛=165px画面距離。
+    // 視界不良：トールから半径2.5目盛だけ通常表示。
+    // 1目盛=110pxワールド、描画倍率50%なので、2.5目盛=137.5px画面距離。
     // 重要：destination-outで既に描いたゲーム画面を消すのではなく、
     // 円の「外側だけ」に暗幕を描く。これで円の内側は完全に元の画面を維持する。
     const vx=W*.12+worldX(player.x)*.5;
