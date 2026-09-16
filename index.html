@@ -324,22 +324,22 @@ function damage(red=false){
 function startTrojanEvent(t){
   if(!state.running || state.trojanEvent)return;
   t.triggered=true;
-  state.trojanEvent={phase:'warning',laneType:t.laneType,x:t.x,timer:1,flashTimer:1,wireTimer:0};
-  // 踏んだトロイは可視化してチェスのナイト風にする。
+  // 踏んだ瞬間にトロイを可視化。最初の1秒は電線を紫点滅させる。
+  state.trojanEvent={phase:'flash',laneType:t.laneType,x:t.x,timer:1,flashTimer:1,wireTimer:0};
   t.revealedTimer=1.5;
   showMessage('TROJAN // 紫電予告');
 }
 function updateTrojan(dt){
   if(!state.trojanEvent)return;
   const e=state.trojanEvent;
-  if(e.phase==='warning'){
+  if(e.phase==='flash'){
+    // 1秒間に3回点滅＝0.1667秒ごとに紫／元色を切り替え、3周期。
     e.timer-=dt;
     if(e.timer<=0){
       e.phase='current';
       e.timer=.5;
       e.wireTimer=.5;
-      // 1秒後から0.5秒間、踏んだ電線に大電流を流す。
-      showMessage('TROJAN // HIGH CURRENT');
+      showMessage('TROJAN // PURPLE CURRENT');
     }
   }else if(e.phase==='current'){
     e.timer-=dt;
@@ -709,7 +709,7 @@ function drawWire(y,glow,label,i){
   let bodyGlow=glow;
   let bodyCore=glow;
   let shadow=glow;
-  const trojanWarning=state.trojanEvent && state.trojanEvent.phase==='warning' && state.trojanEvent.laneType===wires[i]?.type;
+  const trojanWarning=state.trojanEvent && state.trojanEvent.phase==='flash' && state.trojanEvent.laneType===wires[i]?.type;
   const trojanCurrent=trojanCurrentActiveOnLane(wires[i]?.type);
   if(trojanWarning){
     // 1秒間に3回点滅：紫／元色を交互に表示。
