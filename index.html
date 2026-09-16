@@ -115,9 +115,16 @@ const WIRE_SLOT_COUNT=7;
 const WIRE_SLOT_Y=Array.from({length:WIRE_SLOT_COUNT},(_,i)=>WIRE_SLOT_TOP+WIRE_SLOT_STEP*i);
 
 const STAGE_WIRE_LAYOUTS=[
-  // MAP 0-1：開始時は中央4本。100mでUPPERを上から2番目の固定枠へ追加し、既存4本は1枠下へ配置。
+  // MAP 0-1：開始時は中央4本。100mでUPPERを上から2番目の固定枠へ追加。
+  // 既存4本は最初から最後まで同じ固定スロットを使い、追加時にも位置を変えない。
   {until:100,types:['CORE','LOWER','CHARGE','HIGH SPEED'],slots:[2,3,4,5]},
-  {until:Infinity,types:['UPPER','CORE','LOWER','CHARGE','HIGH SPEED'],slots:[2,3,4,5,6]}
+  {until:Infinity,types:['UPPER','CORE','LOWER','CHARGE','HIGH SPEED'],slots:[1,2,3,4,5]}
+];
+
+// 新しい電線の生成演出。targetM地点で水平部分が使用可能になる。
+// 生成自体はtargetMの60m手前で行い、そこから50mの斜め部分を背景として表示する。
+const STAGE_WIRE_ADDITIONS=[
+  {type:'UPPER',targetM:100,slot:1,diagonalM:50,spawnAheadM:60}
 ];
 
 const WIRE_TYPES={
@@ -157,6 +164,7 @@ function applyStageWireLayout(force=false){
   const key=layout.types.join('|')+'@'+layout.slots.join(',');
   if(!force && key===currentLayoutKey)return;
   const oldType=wires[state.wire]?.type;
+  const oldY=wires[state.wire]?.y;
   wires=buildWires(layout.types,layout.slots);
   currentLayoutKey=key;
   let next=wires.findIndex(w=>w.type===oldType);
@@ -164,7 +172,9 @@ function applyStageWireLayout(force=false){
   state.wire=next;
   state.wireVisual=next;
   player.targetY=wires[next].y;
-  if(!force)player.y=wires[next].y;
+  // レイアウト変更で既存電線の位置は動かさない。プレイヤーも現在の電線上に留める。
+  if(force) player.y=wires[next].y;
+  else if(oldY!=null) player.y=oldY;
 }
 
 const player={x:160,y:410,targetY:410,r:13,phase:0};
@@ -635,6 +645,35 @@ function drawBackground(){
   }
   ctx.fillStyle='rgba(83,220,240,.08)';ctx.font='bold 52px Arial';ctx.fillText('SECTOR 02',worldX(1600),170);ctx.font='bold 18px Arial';ctx.fillText('CONDUIT NETWORK // DYNAMIC',worldX(1670),195);
 }
+function drawWireAdditions(){
+  const d=distanceMeters();
+  for(const add of STAGE_WIRE_ADDITIONS){
+    const spawnM=add.targetM-add.spawnAheadM;
+    if(d<spawnM || d>=add.targetM)continue;
+    const targetX=160+add.targetM*110;
+    const startX=targetX-add.diagonalM*110;
+    const slotY=WIRE_SLOT_Y[add.slot];
+    // 斜め部分は背景のみ。下側の端から新しい水平電線へ向かって50m伸びる。
+    const startY=slotY+Math.min(520,Math.max(260,add.diagonalM*5.2));
+    ctx.save();
+    ctx.shadowBlur=18;
+    ctx.shadowColor='#bdefff';
+    ctx.strokeStyle='#ccefff';
+    ctx.lineWidth=5;
+    ctx.beginPath();
+    ctx.moveTo(worldX(startX),startY);
+    ctx.lineTo(worldX(targetX),slotY);
+    ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.lineWidth=1;
+    ctx.strokeStyle='#f0fbff';
+    ctx.beginPath();
+    ctx.moveTo(worldX(startX),startY);
+    ctx.lineTo(worldX(targetX),slotY);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
 function drawWire(y,glow,label,i){
   const designated=(state.designated.phase==='active'||state.designated.phase==='penalty') && i===state.designated.lane;
   const blackout=state.designated.phase==='penalty' && i!==state.designated.lane;
@@ -827,6 +866,7 @@ function render(){
   const viewScale=.5;
   ctx.translate(W*.12,H*.25);ctx.scale(viewScale,viewScale);
   drawStations();
+  drawWireAdditions();
   wires.forEach((w,i)=>drawWire(w.y,w.glow,w.label,i));
   drawViruses();drawEnergies();drawParticles();drawPlayer();drawSwitchEffect();
   ctx.restore();
