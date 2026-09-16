@@ -190,13 +190,22 @@ function generateHazardsRange(startX,endX,reset=false){
       if(!blocked)state.energies.push({x,y:0,laneType:type,r:6.84,phase:Math.random()*Math.PI*2});
     }
   }
-  // トロイ：1目盛ごとに0.3%。確認用に最上段(UPPER)電線のみ生成。
+  // トロイ：ウイルスと同程度の発生密度に変更。確認用に最上段(UPPER)電線のみ生成。
+  // ウイルスと同じく、約500〜1200px間隔を基本にランダム配置する。
   for(const type of types){
     if(type!=='UPPER')continue;
-    for(let x=Math.ceil(startX/110)*110;x<endX;x+=110){
-      if(Math.random()>=0.003)continue;
-      const occupied=state.trojans.some(t=>t.laneType===type && Math.abs(t.x-x)<80);
-      if(!occupied)state.trojans.push({x,y:0,laneType:type,r:12,phase:Math.random()*Math.PI*2,triggered:false});
+    let x=startX+Math.random()*220;
+    const count=Math.max(0,Math.ceil((endX-startX)/900));
+    for(let i=0;i<count;i++){
+      let candidate=Math.min(endX-180,x+500+Math.random()*700);
+      let tries=0;
+      while(tries<80 && state.trojans.some(t=>t.laneType===type && Math.abs(t.x-candidate)<220)){
+        candidate+=220+Math.random()*320;
+        tries++;
+      }
+      if(candidate>endX-120)break;
+      state.trojans.push({x:candidate,y:0,laneType:type,r:12,phase:Math.random()*Math.PI*2,triggered:false});
+      x=candidate;
     }
   }
   state.viruses.sort((a,b)=>a.x-b.x);
