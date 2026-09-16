@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.14</title>
+<title>ELECTRIC SOUL β2.15</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -40,8 +40,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 .clearTitle{font-size:24px;letter-spacing:4px;text-shadow:0 0 12px #5eeaff}
 .clearSub{margin-top:12px;color:#82aab1;font-size:12px;letter-spacing:2px}
 @media(min-width:700px){#verticalPad{right:32px;bottom:112px}.hint{right:32px;left:auto;transform:none}.logo{font-size:40px}}
-/* β2.14 UI layout: reference image's composition, rendered in ELECTRIC SOUL's neon industrial style. */
-#batteryHud{position:absolute;left:8px;right:auto;top:76px;bottom:auto;width:180px;height:auto;display:flex;flex-direction:column;align-items:flex-start;gap:7px;z-index:12;pointer-events:none}
+/* β2.15 UI layout: reference image's composition, rendered in ELECTRIC SOUL's neon industrial style. */
+#batteryHud{position:absolute;left:8px;right:auto;top:auto;bottom:18px;width:180px;height:auto;display:flex;flex-direction:column;align-items:flex-start;gap:7px;z-index:12;pointer-events:none}
 #batteryHud .batteryBox{width:174px;flex:0 0 47px;height:47px;align-self:flex-start;justify-content:flex-start}
 #batteryHud .batteryBody{width:158px;height:42px;border-width:2px;padding:4px;gap:4px}
 #batteryHud .batteryTip{width:9px;height:18px;border-width:2px}
@@ -54,7 +54,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.14</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.15</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="message"></div>
 <div id="controls">
@@ -64,8 +64,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.14 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.14</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.15 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.15</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -75,7 +75,7 @@ let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,2);
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);canvas.width=Math.floor(W*DPR);canvas.height=Math.floor(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0)}
 addEventListener('resize',resize);resize();
 
-const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:1000,boostDist:0,boostMultiplier:1.5,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[]};
+const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:1000,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[]};
 const keys={up:false,down:false};
 const wires=[
   {y:260,label:'UPPER',glow:'#56eaff'},
@@ -140,6 +140,7 @@ function damage(){
   showMessage('VIRUS CONTACT // BATTERY -1');
   if(state.battery<=0){
     state.running=false;
+    document.getElementById('gameOverDistance').textContent=distanceMeters()+' m';
     document.getElementById('gameOver').style.display='flex';
   }
 }
@@ -154,7 +155,6 @@ function checkEnergyCollection(){
     const e=state.energies[i];
     if(Math.abs(e.x-player.x)<e.r+player.r+7 && Math.abs(e.y-player.y)<e.r+player.r+7){
       state.energies.splice(i,1);
-      state.boostDist=Math.max(state.boostDist,3*110);
       if(state.battery<3){
         state.charge=Math.min(10,state.charge+5);
         updateBatteryHud();
@@ -169,7 +169,7 @@ function checkEnergyCollection(){
     }
   }
 }
-function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;state.boostDist=0;player.x=160;player.y=wires[1].y;player.targetY=wires[1].y;player.phase=0;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('gameOverDistance').textContent='0 m';showMessage('4本の電線 // RUN START')}
+function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;player.x=160;player.y=wires[1].y;player.targetY=wires[1].y;player.phase=0;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('gameOverDistance').textContent='0 m';showMessage('4本の電線 // RUN START')}
 function switchWire(dir){
   const next=Math.max(0,Math.min(wires.length-1,state.wire+dir));
   if(next===state.wire)return;
@@ -202,7 +202,7 @@ function update(dt){
   state.t+=dt;
   if(state.damageTimer>0)state.damageTimer=Math.max(0,state.damageTimer-dt);
   state.shake=Math.max(0,state.shake-dt);
-  const baseSpeed=state.speed*(state.wire===3?2:1); const moveSpeed=baseSpeed*(state.boostDist>0?state.boostMultiplier:1); const moved=moveSpeed*dt; player.x+=moved; if(state.boostDist>0)state.boostDist=Math.max(0,state.boostDist-moved);
+  const moveSpeed=state.speed*(state.wire===3?2:1); player.x+=moveSpeed*dt;
   player.phase+=dt*0.12;
   // 上下の電線切り替えを滑らかにアニメーション。約0.14秒で到達する。
   const dy=player.targetY-player.y;
