@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.9</title>
+<title>ELECTRIC SOUL β2.10</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -199,7 +199,7 @@ function update(dt){
   else player.y += Math.sign(dy)*step;
   state.wireVisual=state.wire;
   state.wirePulse=Math.max(0,state.wirePulse-dt*3.5);
-  state.cam=Math.max(0,player.x-W*.22);
+  state.cam=Math.max(0,player.x-W*.20);
   state.cam=Math.min(state.cam,Math.max(0,state.worldW-W*.78));
   if(state.battery<3){
     state.charge+=dt;
@@ -234,13 +234,23 @@ function drawWire(y,glow,label,i){
   ctx.fillStyle='rgba(113,221,234,.28)';ctx.font='10px Arial';ctx.fillText(label,worldX(40),y-16);
 }
 function drawPlayer(){
-  const y=player.y;const x=worldX(player.x);const pulse=1+Math.sin(state.t*12)*.08;
+  const y=player.y;const x=worldX(player.x);
   if(state.damageTimer>0 && Math.floor(state.damageTimer*12)%2===0)return;
   ctx.save();ctx.translate(x,y);ctx.rotate(-.08);
   ctx.shadowBlur=22;ctx.shadowColor='#7df3ff';ctx.fillStyle='#dfffff';
   ctx.beginPath();ctx.moveTo(-17,0);ctx.lineTo(-3,-10);ctx.lineTo(11,-7);ctx.lineTo(16,0);ctx.lineTo(8,8);ctx.lineTo(-5,9);ctx.closePath();ctx.fill();
   ctx.fillStyle='#5ee5ff';ctx.fillRect(-3,-4,10,4);ctx.fillStyle='#ffffff';ctx.fillRect(6,-2,5,3);
   ctx.fillStyle='rgba(104,235,255,.7)';ctx.beginPath();ctx.moveTo(-17,0);ctx.lineTo(-27,-5);ctx.lineTo(-20,3);ctx.closePath();ctx.fill();
+  // 顔：通常は縦線の目、ダメージ中は「> <」の痛がる表情
+  ctx.shadowBlur=0;ctx.strokeStyle='#163a45';ctx.lineWidth=2;ctx.lineCap='round';ctx.beginPath();
+  if(state.damageTimer>0){
+    ctx.moveTo(-7,-4);ctx.lineTo(-3,0);ctx.lineTo(-7,4);
+    ctx.moveTo(7,-4);ctx.lineTo(3,0);ctx.lineTo(7,4);
+  }else{
+    ctx.moveTo(-5,-4);ctx.lineTo(-5,3);
+    ctx.moveTo(5,-4);ctx.lineTo(5,3);
+  }
+  ctx.stroke();
   ctx.restore();
   ctx.shadowBlur=0;
   if(Math.random()<.35){ctx.fillStyle='#dfffff';ctx.fillRect(x-10+(Math.random()*20),y-15+(Math.random()*30),2,2)}
@@ -286,10 +296,14 @@ function drawGoal(){const x=worldX(state.worldW-220);for(let i=0;i<5;i++){ctx.fi
 function render(){
   ctx.save();
   if(state.shake>0){const amp=8*(state.shake/.65);ctx.translate((Math.random()-.5)*amp,(Math.random()-.5)*amp);}
+  // 100%引き：ゲーム世界を50%表示にして、横方向の見通しを2倍にする。
   drawBackground();
+  ctx.save();
+  ctx.translate(W*.12,H*.25);ctx.scale(.5,.5);
   drawStations();
   wires.forEach((w,i)=>drawWire(w.y,w.glow,w.label,i));
   drawViruses();drawEnergies();drawParticles();drawPlayer();drawSwitchEffect();
+  ctx.restore();
   ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(0,H-150,W,150);
   ctx.strokeStyle='rgba(92,224,241,.13)';ctx.beginPath();ctx.moveTo(0,H-150);ctx.lineTo(W,H-150);ctx.stroke();
   if(state.running){ctx.fillStyle='#6fa8b1';ctx.font='10px Arial';ctx.fillText('LINE '+String(state.wire+1).padStart(2,'0')+' / 04',W-100,88)}
