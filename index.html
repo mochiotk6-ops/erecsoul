@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.15</title>
+<title>ELECTRIC SOUL β2.19.2</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -414,20 +414,20 @@ function render(){
   ctx.restore();
   if(state.infectionType==='vision' && state.infectionTimer>0){
     // 3目盛=330pxのワールド距離 → ズーム後は165pxの画面半径。
-    // まず暗幕を敷き、その上から円形の「通常視界」をくり抜く。
+    // 半径3目盛の内側には一切フィルターをかけず、外側だけを暗くする。
     const vx=W*.12+worldX(player.x)*.5;
     const vy=H*.25+player.y*.5;
     const vr=165;
     ctx.save();
     ctx.fillStyle='rgba(0,0,0,.96)';
     ctx.fillRect(0,0,W,H);
+    // 暗幕のあと、視界内の円だけを完全にくり抜く。
+    // グラデーションを使わないので、円の内側は元の明るさのまま。
     ctx.globalCompositeOperation='destination-out';
-    const vg=ctx.createRadialGradient(vx,vy,0,vx,vy,vr);
-    vg.addColorStop(0,'rgba(0,0,0,1)');
-    vg.addColorStop(.92,'rgba(0,0,0,1)');
-    vg.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=vg;
-    ctx.beginPath();ctx.arc(vx,vy,vr,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,1)';
+    ctx.beginPath();
+    ctx.arc(vx,vy,vr,0,Math.PI*2);
+    ctx.fill();
     ctx.restore();
   }
   ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(0,H-150,W,150);
