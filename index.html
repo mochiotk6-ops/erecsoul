@@ -57,7 +57,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.17</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.18</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="infectionHud">⚠ 充電不可</div><div id="message"></div>
 <div id="controls">
@@ -67,8 +67,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.17 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.17</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.18 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.18</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -78,7 +78,7 @@ let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,2);
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);canvas.width=Math.floor(W*DPR);canvas.height=Math.floor(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0)}
 addEventListener('resize',resize);resize();
 
-const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:1000,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[],infectionTimer:0,infectionFade:0};
+const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:1000,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[],infectionTimer:0,infectionFade:0,infectionType:''};
 const keys={up:false,down:false};
 const wires=[
   {y:260,label:'UPPER',glow:'#56eaff'},
@@ -117,7 +117,7 @@ function generateViruses(){
   }
   state.viruses.sort((a,b)=>a.x-b.x);
 
-  // 目盛(110px)ごとに30%の確率でエナジーを抽選。全4本が対象。
+  // 目盛(110px)ごとに5%の確率でエナジーを抽選。全4本が対象。
   for(let lane=0;lane<wires.length;lane++){
     for(let x=1100;x<state.worldW-1200;x+=110){
       if(Math.random()>=0.05)continue;
@@ -133,6 +133,37 @@ function updateBatteryHud(){
   const active=state.battery<3;
   document.getElementById('chargeFill').style.width=(active?Math.min(100,state.charge/10*100):0)+'%';
 }
+function startInfection(type){
+  state.infectionType=type;
+  state.infectionTimer=(type==='charging'?10:5);
+  state.infectionFade=0;
+  const names={
+    charging:'⚠ 充電不可',
+    vision:'⚠ 視界不良',
+    control:'⚠ 操作不良'
+  };
+  const inf=document.getElementById('infectionHud');
+  inf.textContent=names[type];
+  inf.style.display='block';
+  inf.classList.remove('infectionFlash');
+  void inf.offsetWidth;
+  inf.classList.add('infectionFlash');
+  showMessage(names[type]+' // '+state.infectionTimer+'s');
+}
+function endInfection(){
+  state.infectionTimer=0;
+  state.infectionFade=1;
+  state.infectionType='';
+  const inf=document.getElementById('infectionHud');
+  inf.classList.remove('infectionFlash');
+  inf.style.opacity='0';
+  setTimeout(()=>{
+    if(state.infectionTimer<=0){
+      inf.style.display='none';
+      inf.style.opacity='1';
+    }
+  },700);
+}
 function damage(red=false){
   if(state.damageTimer>0||!state.running)return;
   state.battery=Math.max(0,state.battery-1);
@@ -140,15 +171,10 @@ function damage(red=false){
   state.damageTimer=1;
   state.shake=.65;
   if(red){
-    state.infectionTimer=10;
-    state.infectionFade=0;
-    showMessage('⚠ CHARGING DISABLED // 10s');
-    const inf=document.getElementById('infectionHud');
-    inf.textContent='⚠ 充電不可';
-    inf.style.display='block';
-    inf.classList.remove('infectionFlash');
-    void inf.offsetWidth;
-    inf.classList.add('infectionFlash');
+    const roll=Math.random();
+    if(roll<0.50)startInfection('charging');
+    else if(roll<0.80)startInfection('vision');
+    else startInfection('control');
   }else{
     showMessage('VIRUS CONTACT // BATTERY -1');
   }
@@ -170,7 +196,7 @@ function checkEnergyCollection(){
     const e=state.energies[i];
     if(Math.abs(e.x-player.x)<e.r+player.r+7 && Math.abs(e.y-player.y)<e.r+player.r+7){
       state.energies.splice(i,1);
-      if(state.battery<3){
+      if(state.battery<3 && state.infectionTimer<=0){
         state.charge=Math.min(10,state.charge+3.3);
         updateBatteryHud();
         showMessage('ENERGY +33% // CHARGE');
@@ -184,7 +210,7 @@ function checkEnergyCollection(){
     }
   }
 }
-function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionFade=0;player.x=160;player.y=wires[1].y;player.targetY=wires[1].y;player.phase=0;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('gameOverDistance').textContent='0 m';showMessage('4本の電線 // RUN START')}
+function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionFade=0;state.infectionType='';player.x=160;player.y=wires[1].y;player.targetY=wires[1].y;player.phase=0;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('gameOverDistance').textContent='0 m';showMessage('4本の電線 // RUN START')}
 function switchWire(dir){
   const next=Math.max(0,Math.min(wires.length-1,state.wire+dir));
   if(next===state.wire)return;
@@ -196,9 +222,16 @@ function switchWire(dir){
   showMessage(next===0?'UPPER LINE':next===1?'CORE LINE':next===2?'LOWER LINE':'HIGH SPEED LINE');
 }
 function bindButton(id,key,fn){const e=document.getElementById(id);let pid=null;const down=ev=>{ev.preventDefault();pid=ev.pointerId;try{e.setPointerCapture(pid)}catch(_){}keys[key]=true;e.classList.add('on');if(fn)fn()};const up=ev=>{if(pid!==null&&ev.pointerId!==pid)return;ev.preventDefault();keys[key]=false;e.classList.remove('on');pid=null};e.addEventListener('pointerdown',down,{passive:false});e.addEventListener('pointerup',up,{passive:false});e.addEventListener('pointercancel',up,{passive:false});}
-bindButton('up','up',()=>switchWire(-1));
-bindButton('down','down',()=>switchWire(1));
-addEventListener('keydown',e=>{if(e.code==='ArrowUp'){if(!keys.up){keys.up=true;switchWire(-1)}}if(e.code==='ArrowDown'){if(!keys.down){keys.down=true;switchWire(1)}}});
+bindButton('up','up',()=>switchWire(state.infectionType==='control'?1:-1));
+bindButton('down','down',()=>switchWire(state.infectionType==='control'?-1:1));
+addEventListener('keydown',e=>{
+  if(e.code==='ArrowUp'){
+    if(!keys.up){keys.up=true;switchWire(state.infectionType==='control'?1:-1)}
+  }
+  if(e.code==='ArrowDown'){
+    if(!keys.down){keys.down=true;switchWire(state.infectionType==='control'?-1:1)}
+  }
+});
 addEventListener('keyup',e=>{if(e.code==='ArrowUp')keys.up=false;if(e.code==='ArrowDown')keys.down=false});
 document.getElementById('startBtn').addEventListener('click',reset);
 document.getElementById('restartBtn').addEventListener('click',reset);
@@ -222,6 +255,11 @@ function addParticles(){
 function update(dt){
   state.t+=dt;
   if(state.damageTimer>0)state.damageTimer=Math.max(0,state.damageTimer-dt);
+  if(state.infectionTimer>0){
+    state.infectionTimer=Math.max(0,state.infectionTimer-dt);
+    if(state.infectionTimer===0)endInfection();
+  }
+  if(state.infectionFade>0)state.infectionFade=Math.max(0,state.infectionFade-dt/0.7);
   state.shake=Math.max(0,state.shake-dt);
   const moveSpeed=state.speed*speedProgress()*(state.wire===3?2:1); player.x+=moveSpeed*dt;
   player.phase+=dt*0.12;
@@ -346,6 +384,22 @@ function render(){
   wires.forEach((w,i)=>drawWire(w.y,w.glow,w.label,i));
   drawViruses();drawEnergies();drawParticles();drawPlayer();drawSwitchEffect();
   ctx.restore();
+  if(state.infectionType==='vision' && state.infectionTimer>0){
+    const vx=W*.12+worldX(player.x)*.5;
+    const vy=H*.25+player.y*.5;
+    const vr=330*.5;
+    ctx.save();
+    ctx.fillStyle='rgba(0,0,0,.98)';
+    ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation='destination-out';
+    const vg=ctx.createRadialGradient(vx,vy,0,vx,vy,vr);
+    vg.addColorStop(0,'rgba(0,0,0,1)');
+    vg.addColorStop(.82,'rgba(0,0,0,1)');
+    vg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=vg;
+    ctx.beginPath();ctx.arc(vx,vy,vr,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
   ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(0,H-150,W,150);
   ctx.strokeStyle='rgba(92,224,241,.13)';ctx.beginPath();ctx.moveTo(0,H-150);ctx.lineTo(W,H-150);ctx.stroke();
   if(state.running){ctx.fillStyle='#dfffff';ctx.font='900 30px Arial';ctx.shadowBlur=12;ctx.shadowColor='rgba(70,230,255,.55)';ctx.fillText(Math.floor(Math.max(0,player.x-160)/110)+' m',W-115,96);ctx.shadowBlur=0}
