@@ -65,7 +65,7 @@ let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,2);
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);canvas.width=Math.floor(W*DPR);canvas.height=Math.floor(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0)}
 addEventListener('resize',resize);resize();
 
-const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:500,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[]};
+const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:1700,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[]};
 const keys={up:false,down:false};
 const wires=[
   {y:260,label:'UPPER',glow:'#56eaff'},
@@ -84,7 +84,7 @@ function generateViruses(){
   const placed={0:[],1:[],2:[],3:[]};
   for(const lane of lanes){
     let x=900+Math.random()*500;
-    const count=8+Math.floor(Math.random()*9);
+    const count=Math.ceil((state.worldW-1200)/900);
     for(let i=0;i<count;i++){
       let candidate=x+650+Math.random()*900;
       let tries=0;
@@ -306,7 +306,7 @@ function render(){
   ctx.restore();
   ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(0,H-150,W,150);
   ctx.strokeStyle='rgba(92,224,241,.13)';ctx.beginPath();ctx.moveTo(0,H-150);ctx.lineTo(W,H-150);ctx.stroke();
-  if(state.running){ctx.fillStyle='#6fa8b1';ctx.font='10px Arial';ctx.fillText('LINE '+String(state.wire+1).padStart(2,'0')+' / 04',W-100,88)}
+  if(state.running){ctx.fillStyle='#6fa8b1';ctx.font='10px Arial';ctx.fillText(Math.floor(Math.max(0,player.x-160)/110)+' m',W-70,88)}
   ctx.restore();
 }
 function loop(now){const dt=Math.min(.035,((now-state.last)||16.7)/1000);state.last=now;if(state.running)update(dt);render();requestAnimationFrame(loop)}
