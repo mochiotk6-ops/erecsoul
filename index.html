@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.13.1.1</title>
+<title>ELECTRIC SOUL β2.13.2</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -44,7 +44,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.13.1.1</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.13.2</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="message"></div>
 <div id="controls">
@@ -54,10 +54,26 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.13.1.1 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.13.1.1</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.13.2 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.13.2</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
+
+document.addEventListener('pointerup',function(e){
+  const b=e.target.closest('#startBtn,#restartBtn,#gameOverBtn');
+  if(!b)return;
+  e.preventDefault();
+  e.stopPropagation();
+  reset();
+},{passive:false});
+document.addEventListener('click',function(e){
+  const b=e.target.closest('#startBtn,#restartBtn,#gameOverBtn');
+  if(!b)return;
+  e.preventDefault();
+  e.stopPropagation();
+  reset();
+});
+
 'use strict';
 const canvas=document.getElementById('game');
 const ctx=canvas.getContext('2d');
@@ -192,8 +208,7 @@ bindButton('up','up',()=>switchWire(-1));
 bindButton('down','down',()=>switchWire(1));
 addEventListener('keydown',e=>{if(e.code==='ArrowUp'){if(!keys.up){keys.up=true;switchWire(-1)}}if(e.code==='ArrowDown'){if(!keys.down){keys.down=true;switchWire(1)}}});
 addEventListener('keyup',e=>{if(e.code==='ArrowUp')keys.up=false;if(e.code==='ArrowDown')keys.down=false});
-document.getElementById('startBtn').addEventListener('click',reset);
-document.getElementById('restartBtn').addEventListener('click',reset);
+
 document.getElementById('gameOverBtn').addEventListener('click',reset);
 
 function worldX(x){return x-state.cam}
