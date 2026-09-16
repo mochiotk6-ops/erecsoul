@@ -44,7 +44,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.9</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.11</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="message"></div>
 <div id="controls">
@@ -54,8 +54,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.9 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.9</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.11 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.11</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -71,7 +71,7 @@ const wires=[
   {y:260,label:'UPPER',glow:'#56eaff'},
   {y:360,label:'CORE',glow:'#7cf2ff'},
   {y:460,label:'LOWER',glow:'#48d9f3'},
-  {y:560,label:'HIGH SPEED',glow:'#ff4055',speedMul:3}
+  {y:560,label:'HIGH SPEED',glow:'#ff4055',speedMul:2}
 ];
 const player={x:160,y:360,targetY:360,r:13,phase:0};
 
@@ -228,7 +228,7 @@ function drawBackground(){
 function drawWire(y,glow,label,i){
   const x1=0,x2=state.worldW;
   ctx.shadowBlur=24;ctx.shadowColor=glow;line(x1,y,x2,y,'rgba(37,86,100,.8)',13);line(x1,y,x2,y,glow,5);ctx.shadowBlur=0;line(x1,y,x2,y,'#d9ffff',1);
-  for(let x=Math.floor(state.cam/110)*110;x<state.cam+W+110;x+=110){
+  for(let x=Math.floor(state.cam/110)*110;x<state.cam+W*2+110;x+=110){
     const sx=worldX(x);ctx.fillStyle='rgba(165,249,255,.85)';ctx.fillRect(sx-2,y-8,4,16);ctx.fillStyle='rgba(84,224,242,.25)';ctx.fillRect(sx-7,y-2,14,4);
   }
   ctx.fillStyle='rgba(113,221,234,.28)';ctx.font='10px Arial';ctx.fillText(label,worldX(40),y-16);
@@ -242,13 +242,13 @@ function drawPlayer(){
   ctx.fillStyle='#5ee5ff';ctx.fillRect(-3,-4,10,4);ctx.fillStyle='#ffffff';ctx.fillRect(6,-2,5,3);
   ctx.fillStyle='rgba(104,235,255,.7)';ctx.beginPath();ctx.moveTo(-17,0);ctx.lineTo(-27,-5);ctx.lineTo(-20,3);ctx.closePath();ctx.fill();
   // 顔：通常は縦線の目、ダメージ中は「> <」の痛がる表情
-  ctx.shadowBlur=0;ctx.strokeStyle='#163a45';ctx.lineWidth=2;ctx.lineCap='round';ctx.beginPath();
+  ctx.shadowBlur=5;ctx.shadowColor='#2aa8ff';ctx.strokeStyle='#2aa8ff';ctx.lineWidth=2.2;ctx.lineCap='round';ctx.beginPath();
   if(state.damageTimer>0){
-    ctx.moveTo(-7,-4);ctx.lineTo(-3,0);ctx.lineTo(-7,4);
-    ctx.moveTo(7,-4);ctx.lineTo(3,0);ctx.lineTo(7,4);
+    ctx.moveTo(1,-4);ctx.lineTo(5,0);ctx.lineTo(1,4);
+    ctx.moveTo(11,-4);ctx.lineTo(7,0);ctx.lineTo(11,4);
   }else{
-    ctx.moveTo(-5,-4);ctx.lineTo(-5,3);
-    ctx.moveTo(5,-4);ctx.lineTo(5,3);
+    ctx.moveTo(3,-4);ctx.lineTo(3,3);
+    ctx.moveTo(10,-4);ctx.lineTo(10,3);
   }
   ctx.stroke();
   ctx.restore();
@@ -257,7 +257,7 @@ function drawPlayer(){
 }
 function drawVirus(v){
   const x=worldX(v.x),y=v.y;
-  if(x<-50||x>W+50)return;
+  if(x<-50||x>W*2+50)return;
   ctx.save();ctx.translate(x,y);ctx.rotate(v.phase+state.t*.18);ctx.scale(.6,.6);
   ctx.shadowBlur=18;ctx.shadowColor='rgba(180,70,255,.8)';
   // トゲトゲしたウイルス外殻
@@ -274,7 +274,7 @@ function drawVirus(v){
 function drawViruses(){for(const v of state.viruses)drawVirus(v);}
 function drawEnergy(e){
   const x=worldX(e.x),y=e.y;
-  if(x<-40||x>W+40)return;
+  if(x<-40||x>W*2+40)return;
   const s=1+Math.sin(state.t*7+e.phase)*.08;
   ctx.save();ctx.translate(x,y);ctx.rotate(Math.PI/4);ctx.scale(s,s);
   ctx.shadowBlur=18;ctx.shadowColor='#c8f8ff';
@@ -296,7 +296,7 @@ function drawGoal(){const x=worldX(state.worldW-220);for(let i=0;i<5;i++){ctx.fi
 function render(){
   ctx.save();
   if(state.shake>0){const amp=8*(state.shake/.65);ctx.translate((Math.random()-.5)*amp,(Math.random()-.5)*amp);}
-  // 100%引き：ゲーム世界を50%表示にして、横方向の見通しを2倍にする。
+  // 100%引き：ゲーム世界を50%表示。カメラ右端までのマップ構造物を描画する。
   drawBackground();
   ctx.save();
   ctx.translate(W*.12,H*.25);ctx.scale(.5,.5);
