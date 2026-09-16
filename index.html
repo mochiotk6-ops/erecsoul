@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.23.1</title>
+<title>ELECTRIC SOUL β2.23.3</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -166,7 +166,7 @@ function generateHazardsRange(startX,endX,reset=false){
   const types=layout.types;
   for(const type of types){
     if(type==='UPPER')continue;
-    if(state.designated.phase==='active' && type===wires[state.designated.lane]?.type)continue;
+    if((state.designated.phase==='active'||state.designated.phase==='penalty') && type===wires[state.designated.lane]?.type)continue;
     let x=startX+Math.random()*220;
     const count=Math.max(0,Math.ceil((endX-startX)/900));
     for(let i=0;i<count;i++){
@@ -330,7 +330,7 @@ function checkEnergyCollection(){
     }
   }
 }
-function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionMax=0;state.infectionFade=0;state.infectionType='';state.designated={phase:'idle',targetX:(160+(Math.random()*300)*110),lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0};player.x=160;player.phase=0;currentLayoutKey='';applyStageWireLayout(true);player.y=wires[state.wire].y;player.targetY=player.y;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('infectionHud').style.display='none';document.getElementById('infectionHud').style.opacity='1';document.getElementById('infectionHud').classList.remove('infectionFlash');document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';document.getElementById('infectionLabel').textContent='⚠ 充電不可';document.getElementById('designatedHud').style.display='none';document.getElementById('designatedWarning').className='';document.getElementById('designatedCount').className='';document.getElementById('designatedCount').textContent='';document.getElementById('gameOverDistance').textContent='0 m';showMessage(wires.length+'本の電線 // RUN START')}
+function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionMax=0;state.infectionFade=0;state.infectionType='';state.designated={phase:'idle',targetX:160+10*110,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0};player.x=160;player.phase=0;currentLayoutKey='';applyStageWireLayout(true);player.y=wires[state.wire].y;player.targetY=player.y;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('infectionHud').style.display='none';document.getElementById('infectionHud').style.opacity='1';document.getElementById('infectionHud').classList.remove('infectionFlash');document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';document.getElementById('infectionLabel').textContent='⚠ 充電不可';document.getElementById('designatedHud').style.display='none';document.getElementById('designatedWarning').className='';document.getElementById('designatedCount').className='';document.getElementById('designatedCount').textContent='';document.getElementById('gameOverDistance').textContent='0 m';showMessage(wires.length+'本の電線 // RUN START')}
 function clearDesignatedHazards(){
   if(state.designated.lane<0)return;
   const targetType=wires[state.designated.lane]?.type;
@@ -338,6 +338,8 @@ function clearDesignatedHazards(){
   state.viruses=state.viruses.filter(v=>v.laneType!==targetType);
 }
 function endDesignated(success=false){
+  // タイムアップ後の3秒保持が終わった時点でのみ、指定電線のマルウェア生成を再開する。
+  const finishedLane=state.designated.lane;
   state.designated.phase='idle';
   state.designated.timer=0;
   state.designated.maxTime=0;
@@ -348,6 +350,13 @@ function endDesignated(success=false){
   hud.style.display='none';
   document.getElementById('designatedWarning').className='';
   document.getElementById('designatedCount').textContent='';
+
+  // プレイヤーの少し先から先の区間を生成し、元の5本の電線すべてで
+  // 通常どおりウイルス等のマルウェアが発生できる状態へ戻す。
+  const resumeStart=Math.max(900,player.x+220);
+  const resumeEnd=Math.min(state.worldW-1200,player.x+1800);
+  if(resumeEnd>resumeStart)generateHazardsRange(resumeStart,resumeEnd,false);
+
   if(success)showMessage('指定電線 // SUCCESS');
 }
 function triggerDesignated(){
@@ -364,7 +373,7 @@ function triggerDesignated(){
   warn.className='';
   const count=document.getElementById('designatedCount');
   count.textContent=state.designated.timer.toFixed(1)+'s';
-  count.className='designatedFastBlink';
+  count.className='';
   hud.style.display='block';
   showMessage('指定電線を選択 // '+(state.designated.lane+1)+'本目');
 }
@@ -389,30 +398,32 @@ function updateDesignated(dt){
   }
   if(state.designated.phase==='warning' && player.x>=state.designated.targetX)triggerDesignated();
   if(state.designated.phase==='active'){
+    // 指定電線に移動してもイベントは成功終了しない。カウントダウンは最後まで続く。
+    // 指定電線そのものの位置も変更しない。
     state.designated.elapsed+=dt;
-    if(state.wire===state.designated.lane){endDesignated(true);return;}
     state.designated.timer=Math.max(0,state.designated.timer-dt);
     const count=document.getElementById('designatedCount');
+    count.className='';
     count.textContent=state.designated.timer.toFixed(1)+'s';
     if(state.designated.timer<=0){
       state.designated.phase='penalty';
       state.designated.penaltyTimer=3;
       count.textContent='TIME UP';
-      count.className='designatedFastBlink';
+      count.className='';
       showMessage('指定電線 TIME UP');
     }
   }else if(state.designated.phase==='penalty'){
+    // タイムアップ後、このオレンジ/黒の状態を3秒間そのまま保持する。
+    // この3秒間は指定電線側の新規マルウェア生成も停止する。
+    // 黒い電線に移動した瞬間ゲームオーバー。
     if(state.wire!==state.designated.lane){
-      // 黒い電線への接触は即ゲームオーバー。指定電線だけは安全。
-      if(Math.abs(player.y-wires[state.wire].y)<2){
-        state.battery=0;
-        updateBatteryHud();
-        state.running=false;
-        document.getElementById('gameOverDistance').textContent=distanceMeters()+' m';
-        document.getElementById('gameOver').style.display='flex';
-        endDesignated(false);
-        return;
-      }
+      state.battery=0;
+      updateBatteryHud();
+      state.running=false;
+      document.getElementById('gameOverDistance').textContent=distanceMeters()+' m';
+      document.getElementById('gameOver').style.display='flex';
+      endDesignated(false);
+      return;
     }
     state.designated.penaltyTimer=Math.max(0,state.designated.penaltyTimer-dt);
     if(state.designated.penaltyTimer<=0)endDesignated(false);
@@ -515,37 +526,59 @@ function drawBackground(){
   ctx.fillStyle='rgba(83,220,240,.08)';ctx.font='bold 52px Arial';ctx.fillText('SECTOR 02',worldX(1600),170);ctx.font='bold 18px Arial';ctx.fillText('CONDUIT NETWORK // DYNAMIC',worldX(1670),195);
 }
 function drawWire(y,glow,label,i){
-  // β2.23.1 FIX:
-  // 2.23では designated / blackout をdrawWire内で宣言しないまま参照していたため、
-  // 最初の電線を描いた直後にReferenceErrorが発生して描画ループが停止していた。
-  // その結果、1本目だけ表示され、drawPlayer()まで到達せずトールも消えていた。
   const designated=(state.designated.phase==='active'||state.designated.phase==='penalty') && i===state.designated.lane;
   const blackout=state.designated.phase==='penalty' && i!==state.designated.lane;
   const active=state.designated.phase==='active' && designated;
   let blinkOn=true;
   if(active){
-    // 発動から3秒間は1秒周期、残り2秒は0.5秒周期。
-    const period=state.designated.timer<=2 ? 0.5 : 1.0;
-    blinkOn=(Math.floor(state.designated.elapsed/period)%2)===0;
+    // 指定電線は0.25秒周期で、元の電線色とオレンジを交互に点滅。
+    blinkOn=(Math.floor(state.designated.elapsed/0.25)%2)===0;
   }
-  const x1=0,x2=state.worldW;
-  const bodyGlow=blackout?'#080b0d':(designated?(blinkOn?'#ff9d32':'#3b2414'):glow);
-  const bodyCore=blackout?'rgba(20,20,20,.95)':(designated?(blinkOn?'#ffbf66':'#6b3518'):glow);
-  const shadow=blackout?'rgba(0,0,0,0)':(designated?'#ff8b24':glow);
-  ctx.shadowBlur=blackout?0:24;ctx.shadowColor=shadow;
-  line(x1,y,x2,y,blackout?'rgba(8,10,12,.95)':'rgba(37,86,100,.8)',13);
-  line(x1,y,x2,y,bodyGlow,5);
+
+  let bodyGlow=glow;
+  let bodyCore=glow;
+  let shadow=glow;
+  if(blackout){
+    bodyGlow='#080b0d';
+    bodyCore='rgba(20,20,20,.95)';
+    shadow='rgba(0,0,0,0)';
+  }else if(designated){
+    bodyGlow=active && !blinkOn ? glow : '#ff9d32';
+    bodyCore=active && !blinkOn ? glow : '#ffbf66';
+    shadow='#ff8b24';
+  }
+
+  ctx.shadowBlur=blackout?0:24;
+  ctx.shadowColor=shadow;
+  line(0,y,state.worldW,y,blackout?'rgba(8,10,12,.95)':'rgba(37,86,100,.8)',13);
+  line(0,y,state.worldW,y,bodyGlow,5);
   ctx.shadowBlur=0;
-  line(x1,y,x2,y,bodyCore,1);
+  line(0,y,state.worldW,y,bodyCore,1);
+
   for(let x=Math.floor(state.cam/110)*110;x<state.cam+W*2+110;x+=110){
     const sx=worldX(x);
-    ctx.fillStyle=blackout?'rgba(20,20,20,.9)':(designated?(blinkOn?'rgba(255,205,145,.95)':'rgba(65,35,20,.9)'):'rgba(165,249,255,.85)');
+    let tickColor='rgba(165,249,255,.85)';
+    let tickGlow='rgba(84,224,242,.25)';
+    let labelColor='rgba(113,221,234,.28)';
+    if(blackout){
+      tickColor='rgba(20,20,20,.9)';
+      tickGlow='rgba(10,10,10,.7)';
+      labelColor='rgba(40,40,40,.5)';
+    }else if(designated){
+      if(!active || blinkOn){
+        tickColor='rgba(255,205,145,.95)';
+        tickGlow='rgba(255,151,53,.55)';
+        labelColor='rgba(255,174,78,.95)';
+      }
+    }
+    ctx.fillStyle=tickColor;
     ctx.fillRect(sx-2,y-8,4,16);
-    ctx.fillStyle=blackout?'rgba(10,10,10,.7)':(designated?(blinkOn?'rgba(255,151,53,.55)':'rgba(70,35,18,.35)'):'rgba(84,224,242,.25)');
+    ctx.fillStyle=tickGlow;
     ctx.fillRect(sx-7,y-2,14,4);
   }
-  ctx.fillStyle=blackout?'rgba(40,40,40,.5)':(designated?(blinkOn?'rgba(255,174,78,.95)':'rgba(90,46,20,.55)'):'rgba(113,221,234,.28)');
-  ctx.font='10px Arial';ctx.fillText(label,worldX(40),y-16);
+  ctx.fillStyle=labelColor;
+  ctx.font='10px Arial';
+  ctx.fillText(label,worldX(40),y-16);
 }
 function drawPlayer(){
   const y=player.y;const x=worldX(player.x);
