@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.25 // STAGE SELECT</title>
+<title>ELECTRIC SOUL β2.27.4 // STAGE SELECT</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -79,7 +79,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.26</div><div id="stageTitle">STAGE 0 // MAP 0-1</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.27.4</div><div id="stageTitle">STAGE 0 // MAP 0-1</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="infectionHud"><span id="infectionLabel">⚠ 充電不可</span><div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="designatedHud"><div id="designatedWarning">⚠️大電流</div><div id="designatedCount"></div></div><div id="message"></div>
 <div id="controls">
@@ -89,8 +89,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="stageSelect"><div class="stageLogo">ELECTRIC SOUL</div><div class="stageSelectSub">STAGE SELECT // β2.26</div><div class="stageList"><div class="stageBlock"><div class="stageName">STAGE 0</div><div class="mapRow"><button class="mapBtn" id="map01">①<span class="mapLabel">MAP 0-1</span></button><button class="mapBtn locked" disabled>②<span class="mapLabel">LOCKED</span></button><button class="mapBtn locked" disabled>③<span class="mapLabel">LOCKED</span></button></div></div></div></div><div id="start" style="display:none"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.26 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.26</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="stageSelect"><div class="stageLogo">ELECTRIC SOUL</div><div class="stageSelectSub">STAGE SELECT // β2.27.4</div><div class="stageList"><div class="stageBlock"><div class="stageName">STAGE 0</div><div class="mapRow"><button class="mapBtn" id="map01">①<span class="mapLabel">MAP 0-1</span></button><button class="mapBtn locked" disabled>②<span class="mapLabel">LOCKED</span></button><button class="mapBtn locked" disabled>③<span class="mapLabel">LOCKED</span></button></div></div></div></div><div id="start" style="display:none"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.27.4 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.27.4</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -102,11 +102,11 @@ addEventListener('resize',resize);resize();
 
 const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:850,worldW:102000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[],infectionTimer:0,infectionMax:0,infectionFade:0,infectionType:'',designated:{phase:'idle',targetX:null,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0},shockTimer:0,shockMax:0};
 const keys={up:false,down:false};
-// β2.26: 電線は最大7枠の固定スペース内で増減する。
+// β2.27.4: 電線は最大7枠の固定スペース内で増減する。
 // ここを書き換えるだけで、距離ごとの電線構成を自由に設計できる。
 // type は下記 WIRE_TYPES の名前を指定する。
 // 例：['UPPER','CORE','LOWER','HIGH SPEED']
-// β2.26：画面内には常に7本分の固定スペースを確保する。
+// β2.27.4：画面内には常に7本分の固定スペースを確保する。
 // 従来の4本は中央4枠（2〜5）に配置し、電線が増減しても
 // 電線間隔・カメラ位置を再計算しない。上下の空き枠へ追加／削除する。
 const WIRE_SLOT_TOP=60;
@@ -229,7 +229,7 @@ function generateHazardsRange(startX,endX,reset=false){
   state.energies.sort((a,b)=>a.x-b.x);
 }
 function generateViruses(){
-  // β2.26: ステージレイアウトに応じた電線構成。7枠の固定スペースを使用。
+  // β2.27.4: ステージレイアウトに応じた電線構成。7枠の固定スペースを使用。
   // 同じ電線だけでなく、隣り合う上下の電線同士も2目盛(220px)以上離す。
   generateHazardsRange(900,Math.min(state.worldW-1200,Math.floor(state.worldW/110)*110),true);
 }
@@ -653,22 +653,31 @@ function drawWireAdditions(){
     const targetX=160+add.targetM*110;
     const startX=targetX-add.diagonalM*110;
     const slotY=WIRE_SLOT_Y[add.slot];
-    // 斜め部分は背景のみ。下側の端から新しい水平電線へ向かって50m伸びる。
-    const startY=slotY+Math.min(520,Math.max(260,add.diagonalM*5.2));
+    // 斜め部分は追加される電線と同じデザイン。ただし背景扱いで、当たり判定も切替対象にもならない。
+    // 画面下端から、100m地点の水平電線へ向かって50m分の斜め線をつなぐ。
+    const wire=WIRE_TYPES[add.type];
+    const glow=(wire&&wire.glow)||WIRE_TYPES[add.type]?.glow||'#56eaff';
     ctx.save();
-    ctx.shadowBlur=18;
-    ctx.shadowColor='#bdefff';
-    ctx.strokeStyle='#ccefff';
-    ctx.lineWidth=5;
+    ctx.lineCap='round';
+    ctx.shadowBlur=24;
+    ctx.shadowColor=glow;
+    ctx.strokeStyle=glow;
+    ctx.lineWidth=13;
     ctx.beginPath();
-    ctx.moveTo(worldX(startX),startY);
+    ctx.moveTo(worldX(startX),H+4);
     ctx.lineTo(worldX(targetX),slotY);
     ctx.stroke();
     ctx.shadowBlur=0;
+    ctx.lineWidth=5;
+    ctx.strokeStyle=glow;
+    ctx.beginPath();
+    ctx.moveTo(worldX(startX),H+4);
+    ctx.lineTo(worldX(targetX),slotY);
+    ctx.stroke();
     ctx.lineWidth=1;
     ctx.strokeStyle='#f0fbff';
     ctx.beginPath();
-    ctx.moveTo(worldX(startX),startY);
+    ctx.moveTo(worldX(startX),H+4);
     ctx.lineTo(worldX(targetX),slotY);
     ctx.stroke();
     ctx.restore();
@@ -862,7 +871,7 @@ function render(){
   if(state.shake>0){const amp=8*(state.shake/.65);ctx.translate((Math.random()-.5)*amp,(Math.random()-.5)*amp);}
   drawBackground();
   ctx.save();
-  // β2.26：7本分の固定スペースを常に使うため、電線増減でズームを変更しない。
+  // β2.27.4：7本分の固定スペースを常に使うため、電線増減でズームを変更しない。
   const viewScale=.5;
   ctx.translate(W*.12,H*.25);ctx.scale(viewScale,viewScale);
   drawStations();
