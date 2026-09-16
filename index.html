@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.21.4</title>
+<title>ELECTRIC SOUL β2.21.5</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -61,7 +61,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.21.4</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.21.5</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="infectionHud"><span id="infectionLabel">⚠ 充電不可</span><div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="message"></div>
 <div id="controls">
@@ -71,8 +71,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.21.4 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.21.4</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.21.5 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.21.5</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -84,14 +84,11 @@ addEventListener('resize',resize);resize();
 
 const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:1000,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[],infectionTimer:0,infectionMax:0,infectionFade:0,infectionType:''};
 const keys={up:false,down:false};
-// β2.21.4: 電線本数をステージ中で自由に変更できるようにした構成。
+// β2.21.5: 電線本数をステージ中で自由に変更できるようにした構成。
 // ここを書き換えるだけで、距離ごとの電線構成を自由に設計できる。
 // type は下記 WIRE_TYPES の名前を指定する。
 // 例：['UPPER','CORE','LOWER','HIGH SPEED']
 const STAGE_WIRE_LAYOUTS=[
-  {until:30,types:['UPPER','CORE','HIGH SPEED']},
-  {until:60,types:['UPPER','CORE','LOWER','HIGH SPEED']},
-  {until:90,types:['CORE','CHARGE','HIGH SPEED']},
   {until:Infinity,types:['UPPER','CORE','LOWER','CHARGE','HIGH SPEED']}
 ];
 
@@ -377,7 +374,7 @@ function update(dt){
   }
   if(state.infectionFade>0)state.infectionFade=Math.max(0,state.infectionFade-dt/0.7);
   state.shake=Math.max(0,state.shake-dt);
-  // 距離に応じてステージの電線本数・種類を切り替える。
+  // 電線は5本固定（1〜3通常 / 4チャージ / 5ハイスピード）。
   applyStageWireLayout();
   // β2.21.2: 視界不良中はトールの速度を通常の115%にする。電線固有の速度補正も維持する。
   const visionSpeedMul=(state.infectionTimer>0 && state.infectionType==='vision')?1.15:1;
