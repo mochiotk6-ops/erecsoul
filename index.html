@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.12</title>
+<title>ELECTRIC SOUL β2.13</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -44,7 +44,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.12</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.13</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="message"></div>
 <div id="controls">
@@ -54,8 +54,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.12 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.12</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.13 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.13</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -65,7 +65,7 @@ let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,2);
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);canvas.width=Math.floor(W*DPR);canvas.height=Math.floor(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0)}
 addEventListener('resize',resize);resize();
 
-const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:500,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[],worms:[]};
+const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:500,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[]};
 const keys={up:false,down:false};
 const wires=[
   {y:220,label:'UPPER',glow:'#56eaff'},
@@ -127,34 +127,8 @@ function generateViruses(){
     state.worms.push({x:state.cam+W+80+spawnDelay*500,y:wires[lane].y,lane,value,duration,phase:Math.random()*Math.PI*2,active:true});
   }
 }
-function updateWorms(dt){
-  for(const w of state.worms){
-    if(!w.active)continue;
-    w.x-=((W+160)/w.duration)*dt;
-    w.phase+=dt*10;
-    if(w.x<state.cam-100)w.active=false;
-  }
-  // 退場したワームは、一定確率で右端から再登場
-  for(const w of state.worms){
-    if(w.active)continue;
-    if(Math.random()<dt*0.45){
-      w.lane=Math.floor(Math.random()*wires.length);
-      w.y=wires[w.lane].y;
-      w.value=weightedWormValue();
-      w.duration=Math.max(0.5,2.0+(10-w.value)*0.1);
-      w.x=state.cam+W+80;
-      w.phase=Math.random()*Math.PI*2;
-      w.active=true;
-    }
-  }
-}
-function checkWormCollision(){
-  if(state.damageTimer>0)return;
-  for(const w of state.worms){
-    if(!w.active)continue;
-    if(Math.abs(w.x-player.x)<28+player.r && Math.abs(w.y-player.y)<16+player.r){damage();return;}
-  }
-}
+
+
 
 function updateBatteryHud(){
   for(let i=0;i<3;i++)document.getElementById('bat'+i).classList.toggle('empty',i>=state.battery);
@@ -203,7 +177,7 @@ function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;stat
 function switchWire(dir){
   if(!state.running)return;
   state.wire=Math.max(0,Math.min(wires.length-1,state.wire));
-  player.targetY=wires[state.wire].y;
+  state.wire=Math.max(0,Math.min(wires.length-1,state.wire)); player.targetY=wires[state.wire].y;
   const next=Math.max(0,Math.min(wires.length-1,state.wire+dir));
   if(next===state.wire)return;
   state.wire=next;
@@ -251,9 +225,7 @@ function update(dt){
   }else{state.charge=0;}
   updateBatteryHud();
   checkVirusCollision();
-  checkWormCollision();
   checkEnergyCollection();
-  updateWorms(dt);
   addParticles();
   for(let i=state.particles.length-1;i>=0;i--){const p=state.particles[i];p.x+=p.vx*dt*4;p.y+=p.vy*dt*4;p.life-=dt*60;if(p.life<=0)state.particles.splice(i,1)}
 }
@@ -319,27 +291,8 @@ function drawEnergy(e){
   ctx.strokeStyle='rgba(240,255,255,.95)';ctx.lineWidth=1.5;ctx.strokeRect(-6.84,-6.84,13.68,13.68);
   ctx.restore();ctx.shadowBlur=0;
 }
-function drawWorm(w){
-  if(!w.active)return;
-  const x=worldX(w.x),y=w.y; if(x<-80||x>W+80)return;
-  ctx.save();ctx.translate(x,y);
-  ctx.shadowBlur=14;ctx.shadowColor='#6dff62';ctx.strokeStyle='#39d94b';ctx.lineWidth=8;ctx.lineCap='round';ctx.beginPath();
-  for(let i=0;i<=10;i++){const xx=28-i*5.6;const yy=Math.sin(w.phase+i*.8)*6;if(i===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy)}ctx.stroke();
-  ctx.strokeStyle='#9aff83';ctx.lineWidth=3;ctx.beginPath();
-  for(let i=0;i<=10;i++){const xx=28-i*5.6;const yy=Math.sin(w.phase+i*.8)*6-1;if(i===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy)}ctx.stroke();
-  ctx.fillStyle='#b7ff9f';ctx.beginPath();ctx.arc(28,Math.sin(w.phase)*6,7,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#102b16';ctx.beginPath();ctx.arc(30,Math.sin(w.phase)*6-2,1.8,0,Math.PI*2);ctx.fill();
-  ctx.restore();ctx.shadowBlur=0;
-}
-function drawWorms(){for(const w of state.worms)drawWorm(w);}
-function drawEnergies(){for(const e of state.energies)drawEnergy(e);}
-function drawParticles(){for(const p of state.particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle='#bffcff';ctx.fillRect(worldX(p.x),p.y,2,2)}ctx.globalAlpha=1}
-function drawStations(){
-  for(let i=0;i<wires.length;i++){
-    const y=wireY(i);const sx=worldX(0);ctx.fillStyle='#09151b';ctx.fillRect(sx,y-32,46,64);ctx.strokeStyle='#4ed9eb';ctx.strokeRect(sx+.5,y-31.5,45,63);ctx.fillStyle='#5ceaff';ctx.fillRect(sx+10,y-5,26,10);
-    const ex=worldX(state.worldW-42);ctx.fillStyle='#09151b';ctx.fillRect(ex,y-32,46,64);ctx.strokeStyle='#4ed9eb';ctx.strokeRect(ex+.5,y-31.5,45,63);ctx.fillStyle='#7df3ff';ctx.fillRect(ex+8,y-17,30,5);ctx.fillRect(ex+8,y-4,30,5);ctx.fillRect(ex+8,y+9,30,5);
-  }
-}
+
+
 function drawSwitchEffect(){if(state.wirePulse<=0)return;const y=wireY(state.wireVisual),x=worldX(player.x);ctx.globalAlpha=state.wirePulse;ctx.strokeStyle='#eaffff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,25+(1-state.wirePulse)*30,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1}
 function drawGoal(){const x=worldX(state.worldW-220);for(let i=0;i<5;i++){ctx.fillStyle='rgba(85,232,255,'+(0.15+i*.08)+')';ctx.fillRect(x+i*12,150-i*8,3,H-300+i*16)}ctx.fillStyle='#cfffff';ctx.font='bold 13px Arial';ctx.fillText('EXIT',x+18,128);ctx.font='10px Arial';ctx.fillStyle='#74b6c0';ctx.fillText('RUN TO THE END',x+18,145)}
 function render(){
@@ -348,7 +301,7 @@ function render(){
   drawBackground();
   drawStations();
   wires.forEach((w,i)=>drawWire(w.y,w.glow,w.label,i));
-  drawViruses();drawWorms();drawEnergies();drawParticles();drawPlayer();drawSwitchEffect();
+  drawViruses();drawEnergies();drawParticles();drawPlayer();drawSwitchEffect();
   ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(0,H-150,W,150);
   ctx.strokeStyle='rgba(92,224,241,.13)';ctx.beginPath();ctx.moveTo(0,H-150);ctx.lineTo(W,H-150);ctx.stroke();
   if(state.running){ctx.fillStyle='#6fa8b1';ctx.font='10px Arial';ctx.fillText('LINE '+String(state.wire+1).padStart(2,'0')+' / 04',W-100,88)}
