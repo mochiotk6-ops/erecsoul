@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.23.3</title>
+<title>ELECTRIC SOUL β2.23.4</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -68,7 +68,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.23</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.23.4</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="infectionHud"><span id="infectionLabel">⚠ 充電不可</span><div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="designatedHud"><div id="designatedWarning">⚠️指定電線</div><div id="designatedCount"></div></div><div id="message"></div>
 <div id="controls">
@@ -78,8 +78,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.23 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.23</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.23.4 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.23.4</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -538,6 +538,7 @@ function drawWire(y,glow,label,i){
   let bodyGlow=glow;
   let bodyCore=glow;
   let shadow=glow;
+  let labelColor='rgba(113,221,234,.28)';
   if(blackout){
     bodyGlow='#080b0d';
     bodyCore='rgba(20,20,20,.95)';
@@ -559,7 +560,6 @@ function drawWire(y,glow,label,i){
     const sx=worldX(x);
     let tickColor='rgba(165,249,255,.85)';
     let tickGlow='rgba(84,224,242,.25)';
-    let labelColor='rgba(113,221,234,.28)';
     if(blackout){
       tickColor='rgba(20,20,20,.9)';
       tickGlow='rgba(10,10,10,.7)';
