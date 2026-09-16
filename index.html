@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.13.3</title>
+<title>ELECTRIC SOUL β2.9</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -44,7 +44,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.13.3</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.9</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="message"></div>
 <div id="controls">
@@ -54,26 +54,10 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.13.3 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn" type="button" onclick="reset()">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.13.3</div><button class="startBtn" id="restartBtn" type="button" onclick="reset()">もう一度走る</button></div>
-<div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><button class="startBtn" id="gameOverBtn" type="button" onclick="reset()">最初からリトライ</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.9 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.9</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
-
-document.addEventListener('pointerup',function(e){
-  const b=e.target.closest('#startBtn,#restartBtn,#gameOverBtn');
-  if(!b)return;
-  e.preventDefault();
-  e.stopPropagation();
-  reset();
-},{passive:false});
-document.addEventListener('click',function(e){
-  const b=e.target.closest('#startBtn,#restartBtn,#gameOverBtn');
-  if(!b)return;
-  e.preventDefault();
-  e.stopPropagation();
-  reset();
-});
-
 'use strict';
 const canvas=document.getElementById('game');
 const ctx=canvas.getContext('2d');
@@ -84,7 +68,7 @@ addEventListener('resize',resize);resize();
 const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:500,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[]};
 const keys={up:false,down:false};
 const wires=[
-  {y:220,label:'UPPER',glow:'#56eaff'},
+  {y:260,label:'UPPER',glow:'#56eaff'},
   {y:360,label:'CORE',glow:'#7cf2ff'},
   {y:460,label:'LOWER',glow:'#48d9f3'},
   {y:560,label:'HIGH SPEED',glow:'#ff4055',speedMul:3}
@@ -130,22 +114,7 @@ function generateViruses(){
     }
   }
   state.energies.sort((a,b)=>a.x-b.x);
-
-  // ワーム：画面右端から左へ移動。1匹ごとに1〜15の速度値をランダム付与。
-  state.worms.length=0;
-  const wormCount=10+Math.floor(Math.random()*9);
-  for(let i=0;i<wormCount;i++){
-    const lane=Math.floor(Math.random()*wires.length);
-    const value=1+Math.floor(Math.random()*15);
-    const baseDuration=2.0; // 数値10を基準。1秒=1として、0.1秒=1刻み
-    const duration=Math.max(0.5,baseDuration+(10-value)*0.1);
-    const spawnDelay=Math.random()*18;
-    state.worms.push({x:state.cam+W+80+spawnDelay*500,y:wires[lane].y,lane,value,duration,phase:Math.random()*Math.PI*2,active:true});
-  }
 }
-
-
-
 function updateBatteryHud(){
   for(let i=0;i<3;i++)document.getElementById('bat'+i).classList.toggle('empty',i>=state.battery);
   const active=state.battery<3;
@@ -189,15 +158,8 @@ function checkEnergyCollection(){
     }
   }
 }
-function reset(){
-state.running=true;
-state.clear=false;
-state.last=performance.now();
-state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;player.x=160;player.y=wires[1].y;player.targetY=wires[1].y;player.phase=0;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';showMessage('4本の電線 // RUN START')}
+function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;player.x=160;player.y=wires[1].y;player.targetY=wires[1].y;player.phase=0;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';showMessage('4本の電線 // RUN START')}
 function switchWire(dir){
-  if(!state.running)return;
-  state.wire=Math.max(0,Math.min(wires.length-1,state.wire));
-  state.wire=Math.max(0,Math.min(wires.length-1,state.wire)); player.targetY=wires[state.wire].y;
   const next=Math.max(0,Math.min(wires.length-1,state.wire+dir));
   if(next===state.wire)return;
   state.wire=next;
@@ -212,6 +174,9 @@ bindButton('up','up',()=>switchWire(-1));
 bindButton('down','down',()=>switchWire(1));
 addEventListener('keydown',e=>{if(e.code==='ArrowUp'){if(!keys.up){keys.up=true;switchWire(-1)}}if(e.code==='ArrowDown'){if(!keys.down){keys.down=true;switchWire(1)}}});
 addEventListener('keyup',e=>{if(e.code==='ArrowUp')keys.up=false;if(e.code==='ArrowDown')keys.down=false});
+document.getElementById('startBtn').addEventListener('click',reset);
+document.getElementById('restartBtn').addEventListener('click',reset);
+document.getElementById('gameOverBtn').addEventListener('click',reset);
 
 function worldX(x){return x-state.cam}
 function wireY(i){return wires[i].y}
@@ -225,7 +190,7 @@ function update(dt){
   state.t+=dt;
   if(state.damageTimer>0)state.damageTimer=Math.max(0,state.damageTimer-dt);
   state.shake=Math.max(0,state.shake-dt);
-  player.x+=state.speed*(state.wire===3?3:1)*dt;
+  player.x+=state.speed*(state.wire===3?2:1)*dt;
   player.phase+=dt*0.12;
   // 上下の電線切り替えを滑らかにアニメーション。約0.14秒で到達する。
   const dy=player.targetY-player.y;
@@ -271,7 +236,7 @@ function drawWire(y,glow,label,i){
 function drawPlayer(){
   const y=player.y;const x=worldX(player.x);const pulse=1+Math.sin(state.t*12)*.08;
   if(state.damageTimer>0 && Math.floor(state.damageTimer*12)%2===0)return;
-  ctx.save();ctx.translate(x,y);ctx.scale(-1,1);ctx.rotate(-.08);
+  ctx.save();ctx.translate(x,y);ctx.rotate(-.08);
   ctx.shadowBlur=22;ctx.shadowColor='#7df3ff';ctx.fillStyle='#dfffff';
   ctx.beginPath();ctx.moveTo(-17,0);ctx.lineTo(-3,-10);ctx.lineTo(11,-7);ctx.lineTo(16,0);ctx.lineTo(8,8);ctx.lineTo(-5,9);ctx.closePath();ctx.fill();
   ctx.fillStyle='#5ee5ff';ctx.fillRect(-3,-4,10,4);ctx.fillStyle='#ffffff';ctx.fillRect(6,-2,5,3);
@@ -308,8 +273,14 @@ function drawEnergy(e){
   ctx.strokeStyle='rgba(240,255,255,.95)';ctx.lineWidth=1.5;ctx.strokeRect(-6.84,-6.84,13.68,13.68);
   ctx.restore();ctx.shadowBlur=0;
 }
-
-
+function drawEnergies(){for(const e of state.energies)drawEnergy(e);}
+function drawParticles(){for(const p of state.particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle='#bffcff';ctx.fillRect(worldX(p.x),p.y,2,2)}ctx.globalAlpha=1}
+function drawStations(){
+  for(let i=0;i<wires.length;i++){
+    const y=wireY(i);const sx=worldX(0);ctx.fillStyle='#09151b';ctx.fillRect(sx,y-32,46,64);ctx.strokeStyle='#4ed9eb';ctx.strokeRect(sx+.5,y-31.5,45,63);ctx.fillStyle='#5ceaff';ctx.fillRect(sx+10,y-5,26,10);
+    const ex=worldX(state.worldW-42);ctx.fillStyle='#09151b';ctx.fillRect(ex,y-32,46,64);ctx.strokeStyle='#4ed9eb';ctx.strokeRect(ex+.5,y-31.5,45,63);ctx.fillStyle='#7df3ff';ctx.fillRect(ex+8,y-17,30,5);ctx.fillRect(ex+8,y-4,30,5);ctx.fillRect(ex+8,y+9,30,5);
+  }
+}
 function drawSwitchEffect(){if(state.wirePulse<=0)return;const y=wireY(state.wireVisual),x=worldX(player.x);ctx.globalAlpha=state.wirePulse;ctx.strokeStyle='#eaffff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,25+(1-state.wirePulse)*30,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1}
 function drawGoal(){const x=worldX(state.worldW-220);for(let i=0;i<5;i++){ctx.fillStyle='rgba(85,232,255,'+(0.15+i*.08)+')';ctx.fillRect(x+i*12,150-i*8,3,H-300+i*16)}ctx.fillStyle='#cfffff';ctx.font='bold 13px Arial';ctx.fillText('EXIT',x+18,128);ctx.font='10px Arial';ctx.fillStyle='#74b6c0';ctx.fillText('RUN TO THE END',x+18,145)}
 function render(){
@@ -327,9 +298,5 @@ function render(){
 function loop(now){const dt=Math.min(.035,((now-state.last)||16.7)/1000);state.last=now;if(state.running)update(dt);render();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 </script>
-
-<script>
-</script>
-
 </body>
 </html>
