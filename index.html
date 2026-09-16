@@ -53,13 +53,17 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 #infectionHud{position:absolute;top:92px;left:50%;transform:translateX(-50%);display:none;color:#ff7884;font-size:22px;font-weight:900;letter-spacing:4px;text-shadow:0 0 8px #ff334d,0 0 22px rgba(255,40,60,.55);z-index:9;pointer-events:none;opacity:1}
 .infectionFlash{animation:infectionFlash 1.8s ease-in-out infinite}
 @keyframes infectionFlash{0%,100%{opacity:.18;filter:blur(.3px)}50%{opacity:1;filter:blur(0)}}
+.batteryCell.infected{background:#cfa8e8!important;box-shadow:0 0 10px rgba(207,168,232,.72)!important}
+#infectionHud{display:none;min-width:150px;text-align:center;line-height:1.2}
+#infectionGauge{display:none;width:150px;height:5px;margin:8px auto 0;border:1px solid rgba(255,120,132,.55);background:rgba(35,8,12,.85);border-radius:3px;overflow:hidden;box-shadow:inset 0 0 5px rgba(255,50,70,.15)}
+#infectionGaugeFill{height:100%;width:100%;background:#ff7884;box-shadow:0 0 7px rgba(255,70,90,.6);transition:width .05s linear}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.18</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.19</div><div id="stageTitle">TEST STAGE</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
-<div id="infectionHud">⚠ 充電不可</div><div id="message"></div>
+<div id="infectionHud">⚠ 充電不可<div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="message"></div>
 <div id="controls">
   <div id="verticalPad">
     <div class="dir" id="up">▲</div>
@@ -67,8 +71,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.18 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.18</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="start"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.19 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.19</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -78,7 +82,7 @@ let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,2);
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);canvas.width=Math.floor(W*DPR);canvas.height=Math.floor(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0)}
 addEventListener('resize',resize);resize();
 
-const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:1000,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[],infectionTimer:0,infectionFade:0,infectionType:''};
+const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:1000,worldW:100000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[],infectionTimer:0,infectionMax:0,infectionFade:0,infectionType:''};
 const keys={up:false,down:false};
 const wires=[
   {y:260,label:'UPPER',glow:'#56eaff'},
@@ -129,13 +133,18 @@ function generateViruses(){
   state.energies.sort((a,b)=>a.x-b.x);
 }
 function updateBatteryHud(){
-  for(let i=0;i<3;i++)document.getElementById('bat'+i).classList.toggle('empty',i>=state.battery);
+  for(let i=0;i<3;i++){
+    const cell=document.getElementById('bat'+i);
+    cell.classList.toggle('empty',i>=state.battery);
+    cell.classList.toggle('infected',state.infectionTimer>0 && i<state.battery);
+  }
   const active=state.battery<3;
   document.getElementById('chargeFill').style.width=(active?Math.min(100,state.charge/10*100):0)+'%';
 }
 function startInfection(type){
   state.infectionType=type;
   state.infectionTimer=(type==='charging'?10:5);
+  state.infectionMax=state.infectionTimer;
   state.infectionFade=0;
   const names={
     charging:'⚠ 充電不可',
@@ -145,6 +154,8 @@ function startInfection(type){
   const inf=document.getElementById('infectionHud');
   inf.textContent=names[type];
   inf.style.display='block';
+  document.getElementById('infectionGauge').style.display='block';
+  document.getElementById('infectionGaugeFill').style.width='100%';
   inf.classList.remove('infectionFlash');
   void inf.offsetWidth;
   inf.classList.add('infectionFlash');
@@ -152,8 +163,10 @@ function startInfection(type){
 }
 function endInfection(){
   state.infectionTimer=0;
+  updateBatteryHud();
   state.infectionFade=1;
   state.infectionType='';
+  state.infectionMax=0;
   const inf=document.getElementById('infectionHud');
   inf.classList.remove('infectionFlash');
   inf.style.opacity='0';
@@ -161,6 +174,8 @@ function endInfection(){
     if(state.infectionTimer<=0){
       inf.style.display='none';
       inf.style.opacity='1';
+      document.getElementById('infectionGauge').style.display='none';
+      document.getElementById('infectionGaugeFill').style.width='0%';
     }
   },700);
 }
@@ -171,15 +186,23 @@ function damage(red=false){
   state.damageTimer=1;
   state.shake=.65;
   if(red){
-    const roll=Math.random();
-    if(roll<0.50)startInfection('charging');
-    else if(roll<0.80)startInfection('vision');
-    else startInfection('control');
+    // 感染中は追加ダメージは受けるが、感染効果は重複・上書きしない。
+    if(state.infectionTimer<=0){
+      const roll=Math.random();
+      if(roll<0.50)startInfection('charging');
+      else if(roll<0.80)startInfection('vision');
+      else startInfection('control');
+    }else{
+      showMessage('RED VIRUS // BATTERY -1');
+    }
   }else{
     showMessage('VIRUS CONTACT // BATTERY -1');
   }
   updateBatteryHud();
   if(state.battery<=0){
+    state.infectionTimer=0;state.infectionMax=0;state.infectionType='';state.infectionFade=0;
+    const inf=document.getElementById('infectionHud');inf.style.display='none';inf.style.opacity='1';inf.classList.remove('infectionFlash');
+    document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';
     state.running=false;
     document.getElementById('gameOverDistance').textContent=distanceMeters()+' m';
     document.getElementById('gameOver').style.display='flex';
@@ -210,7 +233,7 @@ function checkEnergyCollection(){
     }
   }
 }
-function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionFade=0;state.infectionType='';player.x=160;player.y=wires[1].y;player.targetY=wires[1].y;player.phase=0;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('gameOverDistance').textContent='0 m';showMessage('4本の電線 // RUN START')}
+function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionMax=0;state.infectionFade=0;state.infectionType='';player.x=160;player.y=wires[1].y;player.targetY=wires[1].y;player.phase=0;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();document.getElementById('start').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('infectionHud').style.display='none';document.getElementById('infectionHud').style.opacity='1';document.getElementById('infectionHud').classList.remove('infectionFlash');document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';document.getElementById('gameOverDistance').textContent='0 m';showMessage('4本の電線 // RUN START')}
 function switchWire(dir){
   const next=Math.max(0,Math.min(wires.length-1,state.wire+dir));
   if(next===state.wire)return;
@@ -257,6 +280,8 @@ function update(dt){
   if(state.damageTimer>0)state.damageTimer=Math.max(0,state.damageTimer-dt);
   if(state.infectionTimer>0){
     state.infectionTimer=Math.max(0,state.infectionTimer-dt);
+    const ig=document.getElementById('infectionGaugeFill');
+    ig.style.width=(state.infectionMax>0?Math.max(0,state.infectionTimer/state.infectionMax*100):0)+'%';
     if(state.infectionTimer===0)endInfection();
   }
   if(state.infectionFade>0)state.infectionFade=Math.max(0,state.infectionFade-dt/0.7);
@@ -385,16 +410,18 @@ function render(){
   drawViruses();drawEnergies();drawParticles();drawPlayer();drawSwitchEffect();
   ctx.restore();
   if(state.infectionType==='vision' && state.infectionTimer>0){
+    // 3目盛=330pxのワールド距離 → ズーム後は165pxの画面半径。
+    // まず暗幕を敷き、その上から円形の「通常視界」をくり抜く。
     const vx=W*.12+worldX(player.x)*.5;
     const vy=H*.25+player.y*.5;
-    const vr=330*.5;
+    const vr=165;
     ctx.save();
-    ctx.fillStyle='rgba(0,0,0,.98)';
+    ctx.fillStyle='rgba(0,0,0,.96)';
     ctx.fillRect(0,0,W,H);
     ctx.globalCompositeOperation='destination-out';
     const vg=ctx.createRadialGradient(vx,vy,0,vx,vy,vr);
     vg.addColorStop(0,'rgba(0,0,0,1)');
-    vg.addColorStop(.82,'rgba(0,0,0,1)');
+    vg.addColorStop(.92,'rgba(0,0,0,1)');
     vg.addColorStop(1,'rgba(0,0,0,0)');
     ctx.fillStyle=vg;
     ctx.beginPath();ctx.arc(vx,vy,vr,0,Math.PI*2);ctx.fill();
