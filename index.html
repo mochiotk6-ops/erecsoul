@@ -107,8 +107,8 @@ const keys={up:false,down:false};
 // type は下記 WIRE_TYPES の名前を指定する。
 // 例：['UPPER','CORE','LOWER','HIGH SPEED']
 const STAGE_WIRE_LAYOUTS=[
-  // MAP 0-1：開始時は4本。100mでUPPERの追加演出を開始し、
-  // 演出完了後に5本へ再配置する。
+  // MAP 0-1：開始時は4本。UPPER電線は100m地点から存在するが、
+  // プレイ可能になるまでは背景演出としてのみ表示する。
   {until:112,types:['CORE','LOWER','CHARGE','HIGH SPEED']},
   {until:Infinity,types:['UPPER','CORE','LOWER','CHARGE','HIGH SPEED']}
 ];
@@ -156,18 +156,19 @@ function applyStageWireLayout(force=false){
 }
 function startWireExpansion(){
   if(state.wireExpansion.phase!=='idle' || distanceMeters()<100)return;
-  const oldTop=wires[0]?.y??260;
+  // 5本目のUPPER電線そのものは100m地点に最初から存在する。
+  // 演出として、画面下方から100m地点のUPPERへ向かう斜めの線だけを背景に表示する。
   state.wireExpansion={
     phase:'extending',
     startX:player.x,
     progress:0,
     done:false,
     restageProgress:0,
-    oldTopY:oldTop,
+    oldTopY:wires[0]?.y??260,
     newTopY:185,
-    // 斜め線の先端はトールより約8m先から始まり、演出中にゆっくり近づく。
-    diagStartX:player.x-700,
-    diagEndX:player.x+950
+    // 斜め線は100m地点から左下方向へ伸びているように見せる。
+    diagStartX:160+100*110-1200,
+    diagEndX:160+100*110
   };
   showMessage('100m // NEW LINE DETECTED');
 }
@@ -178,16 +179,14 @@ function updateWireExpansion(dt){
     return;
   }
   if(ex.phase==='extending'){
-    // 100mから約12mかけて、斜めの電線を左から右へゆっくり伸ばす。
+    // 100m地点にある5本目を見せるため、カメラをゆっくり引く。
+    // 斜め線は「伸びてくる」のではなく、最初からそこにある背景。
     ex.progress=Math.min(1,(distanceMeters()-100)/12);
-    const eased=1-Math.pow(1-ex.progress,3);
-    ex.diagStartX=ex.startX-900;
-    ex.diagEndX=ex.diagStartX+1800*eased;
     if(ex.progress>=1){
       ex.phase='restage';
       ex.restageProgress=0;
       currentLayoutKey='';
-      // 5本化直後はまだ旧4本の位置を保持するため、ここではワイヤ配列だけを作る。
+      // 5本目は100m地点から存在しているが、ここまでは操作対象外。
       const oldType=wires[state.wire]?.type;
       const nextWires=buildWires(['UPPER','CORE','LOWER','CHARGE','HIGH SPEED']);
       const oldIndex=nextWires.findIndex(w=>w.type===oldType);
@@ -198,7 +197,7 @@ function updateWireExpansion(dt){
       ex.done=true;
     }
   }else if(ex.phase==='restage'){
-    // 既存4本→5本の間隔調整を0.75秒で滑らかに行う。
+    // 既存4本を5本の間隔へ滑らかに再配置。UPPERは背景として先に見えている。
     ex.restageProgress=Math.min(1,ex.restageProgress+dt/0.75);
     const t=ex.restageProgress*ex.restageProgress*(3-2*ex.restageProgress);
     const targetYs=[260,335,410,485,560];
@@ -207,7 +206,6 @@ function updateWireExpansion(dt){
       const wi=i+1;
       if(wires[wi])wires[wi].y=oldYs[i]+(targetYs[wi]-oldYs[i])*t;
     }
-    // 新しいUPPERは最初から最終位置へ。まだこのフェーズでは操作対象外。
     if(wires[0])wires[0].y=targetYs[0];
     player.targetY=wires[state.wire].y;
     if(ex.restageProgress>=1){
@@ -649,7 +647,7 @@ function update(dt){
   }
   if(state.infectionFade>0)state.infectionFade=Math.max(0,state.infectionFade-dt/0.7);
   state.shake=Math.max(0,state.shake-dt);
-  // 100mで新しいUPPER電線の追加演出を開始する。
+  // 100mで、元々100m地点にあるUPPER電線を見せる演出を開始する。
   extendWorldIfNeeded();
   updateWireExpansion(dt);
   applyStageWireLayout();
@@ -781,14 +779,14 @@ function drawWire(y,glow,label,i){
 function drawWireExpansion(){
   const ex=state.wireExpansion;
   if(ex.phase==='idle'||ex.phase==='complete')return;
-  // 追加中の電線は背景だけ。斜め部分・新しい水平部分ともに当たり判定は持たない。
-  const y0=ex.oldTopY;
-  const y1=ex.newTopY;
-  const start=ex.diagStartX;
-  const end=ex.diagEndX;
-  const p=Math.max(.05,Math.min(1,ex.progress));
-  const sx=worldX(start);
-  const exx=worldX(end);
+  // 5本目は100m地点に元々ある。ここでは「つながっている斜め線」だけを背景として描く。
+  // 斜め線・その演出部分には当たり判定も電線切り替え判定もない。
+  const y0=560;
+  const y1=185;
+  const junctionX=160+100*110;
+  const startX=junctionX-1200;
+  const sx=worldX(startX);
+  const exx=worldX(junctionX);
   ctx.save();
   ctx.lineCap='round';
   ctx.shadowBlur=16;
@@ -799,11 +797,14 @@ function drawWireExpansion(){
   ctx.shadowBlur=0;
   ctx.strokeStyle='#e6fbff';ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(sx,y0);ctx.lineTo(exx,y1);ctx.stroke();
-  // 斜め線の先端から、追加される1番上の電線を右方向へ伸ばす。
+  // 100m地点から右へ伸びる5本目のUPPER。まだ操作対象にはしない。
+  const revealAlpha=Math.max(.15,Math.min(1,ex.progress));
+  ctx.globalAlpha=revealAlpha;
   ctx.shadowBlur=16;ctx.shadowColor='#bcefff';ctx.strokeStyle='#bcefff';ctx.lineWidth=7;
   ctx.beginPath();ctx.moveTo(exx,y1);ctx.lineTo(worldX(state.worldW),y1);ctx.stroke();
   ctx.shadowBlur=0;ctx.strokeStyle='#e6fbff';ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(exx,y1);ctx.lineTo(worldX(state.worldW),y1);ctx.stroke();
+  ctx.globalAlpha=1;
   ctx.restore();
 }
 function drawPlayer(){
@@ -907,10 +908,10 @@ function drawGoal(){const x=worldX(state.worldW-220);for(let i=0;i<5;i++){ctx.fi
 function render(){
   ctx.save();
   if(state.shake>0){const amp=8*(state.shake/.65);ctx.translate((Math.random()-.5)*amp,(Math.random()-.5)*amp);}
-  // 100%引き：ゲーム世界を50%表示。カメラ右端までのマップ構造物を描画する。
+  // 演出中は、100m地点のUPPERへ視線を合わせるためゆっくりカメラを引く。
   drawBackground();
   ctx.save();
-  // 新電線追加時だけ、0.50倍→0.43倍へゆっくり引いて全体を見せる。
+  // 100m地点のUPPERが見えるように0.50倍→0.43倍へゆっくり引く。
   let viewScale=.5;
   if(wireExpansionActive())viewScale=.5-.07*(state.wireExpansion.progress||0);
   else if(wireExpansionComplete())viewScale=.43;
