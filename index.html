@@ -827,8 +827,8 @@ function drawEnergy(e){
 function drawEnergies(){for(const e of state.energies)drawEnergy(e);}
 function drawParticles(){for(const p of state.particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle='#bffcff';ctx.fillRect(worldX(p.x),p.y,2,2)}ctx.globalAlpha=1}
 function drawStations(){
-  // レーン：7本分の固定位置を常に表示。電線の有無に関係なく左右に白い枠を置く。
-  // 新しい電線の追加2秒前だけ、その電線色で点灯し、追加後は白へ戻る。
+  // β2.27.6：レーンは電線とは別の背景要素。カメラ移動やワールド座標の影響を受けず、常に画面左右端に固定表示する。
+  // 電線が存在しない位置にも表示される。追加2秒前だけ、その位置に追加される電線の色で点灯する。
   const laneCount=WIRE_SLOT_COUNT;
   const upcoming=[];
   const currentSpeed=Math.max(1,state.speed*speedProgress()*distanceAcceleration()*(wires[state.wire]?.speedMul||1));
@@ -842,24 +842,25 @@ function drawStations(){
     }
   }
   for(let i=0;i<laneCount;i++){
-    const y=WIRE_SLOT_Y[i];
+    // ワールドではなく画面座標。render()のカメラ変換の外側に描くため、常に左右端に固定される。
+    const y=H*.25+WIRE_SLOT_Y[i]*.5;
     let lit=null;
     for(const u of upcoming)if(u.laneIndex===i)lit=u.glow;
     const border=lit||'rgba(240,250,255,.92)';
     const fill='rgba(9,21,27,.72)';
     const inner=lit||'rgba(245,253,255,.96)';
-    const sx=worldX(0);
+    const leftX=0;
+    const rightX=W-46;
     ctx.save();
     ctx.shadowBlur=lit?18:0;
     ctx.shadowColor=lit||'transparent';
-    ctx.fillStyle=fill;ctx.fillRect(sx,y-32,46,64);
-    ctx.strokeStyle=border;ctx.lineWidth=lit?2:1.5;ctx.strokeRect(sx+.5,y-31.5,45,63);
-    ctx.fillStyle=inner;ctx.fillRect(sx+10,y-5,26,10);
-    const ex=worldX(state.worldW-42);
-    ctx.fillStyle=fill;ctx.fillRect(ex,y-32,46,64);
-    ctx.strokeStyle=border;ctx.lineWidth=lit?2:1.5;ctx.strokeRect(ex+.5,y-31.5,45,63);
+    ctx.fillStyle=fill;ctx.fillRect(leftX,y-32,46,64);
+    ctx.strokeStyle=border;ctx.lineWidth=lit?2:1.5;ctx.strokeRect(leftX+.5,y-31.5,45,63);
+    ctx.fillStyle=inner;ctx.fillRect(leftX+10,y-5,26,10);
+    ctx.fillStyle=fill;ctx.fillRect(rightX,y-32,46,64);
+    ctx.strokeStyle=border;ctx.lineWidth=lit?2:1.5;ctx.strokeRect(rightX+.5,y-31.5,45,63);
     ctx.fillStyle=inner;
-    ctx.fillRect(ex+8,y-17,30,5);ctx.fillRect(ex+8,y-4,30,5);ctx.fillRect(ex+8,y+9,30,5);
+    ctx.fillRect(rightX+8,y-17,30,5);ctx.fillRect(rightX+8,y-4,30,5);ctx.fillRect(rightX+8,y+9,30,5);
     ctx.restore();
   }
 }
@@ -870,11 +871,12 @@ function render(){
   ctx.save();
   if(state.shake>0){const amp=8*(state.shake/.65);ctx.translate((Math.random()-.5)*amp,(Math.random()-.5)*amp);}
   drawBackground();
+  // レーンは画面固定の背景要素。ワールド変換の前に描画する。
+  drawStations();
   ctx.save();
   // β2.27.4：7本分の固定スペースを常に使うため、電線増減でズームを変更しない。
   const viewScale=.5;
   ctx.translate(W*.12,H*.25);ctx.scale(viewScale,viewScale);
-  drawStations();
   drawWireAdditions();
   wires.forEach((w,i)=>drawWire(w.y,w.glow,w.label,i));
   drawViruses();drawEnergies();drawParticles();drawPlayer();drawSwitchEffect();
