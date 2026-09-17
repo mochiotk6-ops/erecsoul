@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.28.2 // STAGE SELECT</title>
+<title>ELECTRIC SOUL β2.28.3 // STAGE SELECT</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -87,18 +87,18 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.28.2</div><div id="stageTitle">STAGE 0 // MAP 0-1</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.28.3</div><div id="stageTitle">STAGE 0 // MAP 0-1</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
-<div id="infectionHud"><span id="infectionLabel">⚠ 充電不可</span><div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="designatedHud"><div id="designatedWarning">⚠️大電流</div><div id="designatedCount"></div></div><div id="message"></div><div id="busterBtn">BUSTER 5sec</div>
-<div id="controls"><div id="energyGaugeHud"><span class="egLabel">ENERGY</span><div id="energyGaugeTrack"><div id="energyGaugeFill"></div></div></div>
+<div id="infectionHud"><span id="infectionLabel">⚠ 充電不可</span><div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="designatedHud"><div id="designatedWarning">⚠️大電流</div><div id="designatedCount"></div></div><div id="message"></div><div id="busterBtn">BUSTER</div>
+<div id="controls"><div id="energyGaugeHud"><span class="egLabel" id="energyLabel">0/30</span><div id="energyGaugeTrack"><div id="energyGaugeFill"></div></div></div>
   <div id="verticalPad">
     <div class="dir" id="up">▲</div>
     <div class="dir" id="down">▼</div>
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="stageSelect"><div class="stageLogo">ELECTRIC SOUL</div><div class="stageSelectSub">STAGE SELECT // β2.28.2</div><div class="stageList"><div class="stageBlock"><div class="stageName">STAGE 0</div><div class="mapRow"><button class="mapBtn" id="map01">①<span class="mapLabel">MAP 0-1</span></button><button class="mapBtn locked" disabled>②<span class="mapLabel">LOCKED</span></button><button class="mapBtn locked" disabled>③<span class="mapLabel">LOCKED</span></button></div></div></div></div><div id="start" style="display:none"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.28.2 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.28.2</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="stageSelect"><div class="stageLogo">ELECTRIC SOUL</div><div class="stageSelectSub">STAGE SELECT // β2.28.3</div><div class="stageList"><div class="stageBlock"><div class="stageName">STAGE 0</div><div class="mapRow"><button class="mapBtn" id="map01">①<span class="mapLabel">MAP 0-1</span></button><button class="mapBtn locked" disabled>②<span class="mapLabel">LOCKED</span></button><button class="mapBtn locked" disabled>③<span class="mapLabel">LOCKED</span></button></div></div></div></div><div id="start" style="display:none"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.28.3 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.28.3</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -385,28 +385,30 @@ function checkVirusCollision(){
   }
 }
 function updateEnergyGauge(){
+  const label=document.getElementById('energyLabel');
+  if(label) label.textContent=Math.floor(state.busterCharge)+'/30';
   const fill=document.getElementById('energyGaugeFill');
-  fill.style.width=(Math.max(0,Math.min(50,state.busterCharge))/50*100)+'%';
+  fill.style.width=(Math.max(0,Math.min(30,state.busterCharge))/30*100)+'%';
   const btn=document.getElementById('busterBtn');
   if(state.busterActive>0){
     btn.style.display='block';
     btn.classList.add('active');
     btn.classList.remove('ready');
-    btn.textContent='BUSTER 5sec';
-  }else if(state.busterCharge>=50){
+    btn.textContent='BUSTER';
+  }else if(state.busterCharge>=30){
     btn.style.display='block';
     btn.classList.remove('active');
     btn.classList.add('ready');
-    btn.textContent='BUSTER 5sec';
+    btn.textContent='BUSTER';
   }else{
     btn.style.display='none';
     btn.classList.remove('active','ready');
   }
 }
 function activateBuster(){
-  if(!state.running||state.busterActive>0||state.busterCharge<50)return;
+  if(!state.running||state.busterActive>0||state.busterCharge<30)return;
   state.busterActive=state.busterMax;
-  state.busterCharge=50;
+  state.busterCharge=30;
   updateEnergyGauge();
   showMessage('VIRUS BUSTER // 5sec');
 }
@@ -419,9 +421,9 @@ function checkEnergyCollection(){
     if(Math.abs(e.x-player.x)<e.r+player.r+7 && Math.abs(ey-player.y)<e.r+player.r+7){
       state.energies.splice(i,1);
       state.energyCollected++;
-      state.busterCharge=Math.min(50,state.busterCharge+1);
+      state.busterCharge=Math.min(30,state.busterCharge+1);
       updateEnergyGauge();
-      if(state.busterCharge>=50){
+      if(state.busterCharge>=30){
         showMessage('ENERGY MAX // VIRUS BUSTER READY');
       }
       if(state.battery<3 && !(state.infectionTimer>0 && state.infectionType==='charging')){
@@ -439,7 +441,7 @@ function checkEnergyCollection(){
   }
 }
 
-function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.energyCollected=0;state.busterCharge=0;state.busterActive=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionMax=0;state.infectionFade=0;state.infectionType='';state.shockTimer=0;state.shockMax=0;state.designated={phase:'idle',targetX:160+10*110,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0};player.x=160;player.phase=0;currentLayoutKey='';applyStageWireLayout(true);player.y=wires[state.wire].y;player.targetY=player.y;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();updateEnergyGauge();document.getElementById('start').style.display='none';document.getElementById('stageSelect').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('infectionHud').style.display='none';document.getElementById('infectionHud').style.opacity='1';document.getElementById('infectionHud').classList.remove('infectionFlash');document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';document.getElementById('infectionLabel').textContent='⚠ 充電不可';document.getElementById('designatedHud').style.display='none';document.getElementById('designatedWarning').className='';document.getElementById('designatedCount').className='';document.getElementById('designatedCount').textContent='';document.getElementById('gameOverDistance').textContent='0 m';showMessage(wires.length+'本の電線 // RUN START')}
+function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.energyCollected=0;state.busterCharge=30;state.busterActive=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionMax=0;state.infectionFade=0;state.infectionType='';state.shockTimer=0;state.shockMax=0;state.designated={phase:'idle',targetX:160+10*110,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0};player.x=160;player.phase=0;currentLayoutKey='';applyStageWireLayout(true);player.y=wires[state.wire].y;player.targetY=player.y;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();updateEnergyGauge();document.getElementById('start').style.display='none';document.getElementById('stageSelect').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('infectionHud').style.display='none';document.getElementById('infectionHud').style.opacity='1';document.getElementById('infectionHud').classList.remove('infectionFlash');document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';document.getElementById('infectionLabel').textContent='⚠ 充電不可';document.getElementById('designatedHud').style.display='none';document.getElementById('designatedWarning').className='';document.getElementById('designatedCount').className='';document.getElementById('designatedCount').textContent='';document.getElementById('gameOverDistance').textContent='0 m';showMessage(wires.length+'本の電線 // RUN START')}
 function clearDesignatedHazards(){
   if(state.designated.lane<0)return;
   const targetType=wires[state.designated.lane]?.type;
@@ -677,7 +679,7 @@ function update(dt){
   if(state.infectionFade>0)state.infectionFade=Math.max(0,state.infectionFade-dt/0.7);
   if(state.busterActive>0){
     state.busterActive=Math.max(0,state.busterActive-dt);
-    state.busterCharge=Math.max(0,50*(state.busterActive/state.busterMax));
+    state.busterCharge=Math.max(0,30*(state.busterActive/state.busterMax));
     updateEnergyGauge();
     if(state.busterActive===0){state.busterCharge=0;updateEnergyGauge();showMessage('VIRUS BUSTER END');}
   }
