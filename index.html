@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.27.7 // STAGE SELECT</title>
+<title>ELECTRIC SOUL β2.27.8 // STAGE SELECT</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -79,7 +79,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.27.7</div><div id="stageTitle">STAGE 0 // MAP 0-1</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.27.8</div><div id="stageTitle">STAGE 0 // MAP 0-1</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="infectionHud"><span id="infectionLabel">⚠ 充電不可</span><div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="designatedHud"><div id="designatedWarning">⚠️大電流</div><div id="designatedCount"></div></div><div id="message"></div>
 <div id="controls">
@@ -89,8 +89,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="stageSelect"><div class="stageLogo">ELECTRIC SOUL</div><div class="stageSelectSub">STAGE SELECT // β2.27.7</div><div class="stageList"><div class="stageBlock"><div class="stageName">STAGE 0</div><div class="mapRow"><button class="mapBtn" id="map01">①<span class="mapLabel">MAP 0-1</span></button><button class="mapBtn locked" disabled>②<span class="mapLabel">LOCKED</span></button><button class="mapBtn locked" disabled>③<span class="mapLabel">LOCKED</span></button></div></div></div></div><div id="start" style="display:none"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.27.7 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.27.7</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="stageSelect"><div class="stageLogo">ELECTRIC SOUL</div><div class="stageSelectSub">STAGE SELECT // β2.27.8</div><div class="stageList"><div class="stageBlock"><div class="stageName">STAGE 0</div><div class="mapRow"><button class="mapBtn" id="map01">①<span class="mapLabel">MAP 0-1</span></button><button class="mapBtn locked" disabled>②<span class="mapLabel">LOCKED</span></button><button class="mapBtn locked" disabled>③<span class="mapLabel">LOCKED</span></button></div></div></div></div><div id="start" style="display:none"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.27.8 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.27.8</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -102,11 +102,11 @@ addEventListener('resize',resize);resize();
 
 const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:850,worldW:102000,particles:[],sparks:[],battery:3,charge:0,damageTimer:0,shake:0,viruses:[],energies:[],infectionTimer:0,infectionMax:0,infectionFade:0,infectionType:'',designated:{phase:'idle',targetX:null,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0},shockTimer:0,shockMax:0};
 const keys={up:false,down:false};
-// β2.27.7: 電線は最大7枠の固定スペース内で増減する。
+// β2.27.8: 電線は最大7枠の固定スペース内で増減する。
 // ここを書き換えるだけで、距離ごとの電線構成を自由に設計できる。
 // type は下記 WIRE_TYPES の名前を指定する。
 // 例：['UPPER','CORE','LOWER','HIGH SPEED']
-// β2.27.7：画面内には常に7本分の固定スペースを確保する。
+// β2.27.8：画面内には常に7本分の固定スペースを確保する。
 // 従来の4本は中央4枠（2〜5）に配置し、電線が増減しても
 // 電線間隔・カメラ位置を再計算しない。上下の空き枠へ追加／削除する。
 const WIRE_SLOT_TOP=60;
@@ -115,17 +115,22 @@ const WIRE_SLOT_COUNT=7;
 const WIRE_SLOT_Y=Array.from({length:WIRE_SLOT_COUNT},(_,i)=>WIRE_SLOT_TOP+WIRE_SLOT_STEP*i);
 
 const STAGE_WIRE_LAYOUTS=[
-  // MAP 0-1：開始時は中央4本。100mでUPPERを上から2番目の固定枠へ追加。
-  // 既存4本は最初から最後まで同じ固定スロットを使い、追加時にも位置を変えない。
+  // MAP 0-1：7レーンを固定。開始時はレーン3〜6の4本。
   {until:100,types:['CORE','LOWER','CHARGE','HIGH SPEED'],slots:[2,3,4,5]},
-  {until:Infinity,types:['UPPER','CORE','LOWER','CHARGE','HIGH SPEED'],slots:[1,2,3,4,5]}
+  // 100m：レーン2にUPPERを追加。既存の電線は一切移動しない。
+  {until:200,types:['UPPER','CORE','LOWER','CHARGE','HIGH SPEED'],slots:[1,2,3,4,5]},
+  // 200m：レーン4の普通の電線（LOWER）を削除。レーン5以降はそのままの位置。
+  {until:Infinity,types:['UPPER','CORE','CHARGE','HIGH SPEED'],slots:[1,2,4,5]}
 ];
 
-// 電線追加スケジュール。targetM地点で水平電線が追加される。
-// 電線自体はtargetMの60m手前までに内部生成しておく。
-// β2.27.5では斜めの電線演出は削除し、レーンの予告点灯だけを行う。
+// 電線の追加・削除イベント。
+// 追加は2秒前、削除は3秒前からレーンで予告する。
+// 電線はイベント地点より十分手前からワールド上に存在する。
 const STAGE_WIRE_ADDITIONS=[
   {type:'UPPER',targetM:100,slot:1,spawnAheadM:60}
+];
+const STAGE_WIRE_REMOVALS=[
+  {type:'LOWER',targetM:200,slot:4,warningSec:3}
 ];
 
 const WIRE_TYPES={
@@ -164,20 +169,31 @@ function applyStageWireLayout(force=false){
   const layout=layoutForDistance(d);
   const key=layout.types.join('|')+'@'+layout.slots.join(',');
   if(!force && key===currentLayoutKey)return;
-  const oldType=wires[state.wire]?.type;
-  const oldY=wires[state.wire]?.y;
+  const oldWire=wires[state.wire];
+  const oldType=oldWire?.type;
+  const oldY=oldWire?.y;
+  const oldSlot=oldWire?.slot;
   wires=buildWires(layout.types,layout.slots);
   currentLayoutKey=key;
   let next=wires.findIndex(w=>w.type===oldType);
-  if(next<0)next=Math.max(0,Math.min(wires.length-1,state.wire));
+  if(next<0){
+    // 現在の電線が削除された場合だけ、最も近い残存レーンへ退避する。
+    // 既存の残存電線のslotは一切変更しない。
+    const fallbackSlot=oldSlot!=null?oldSlot:3;
+    let best=0,bestDist=Infinity;
+    wires.forEach((w,i)=>{
+      const dd=Math.abs(w.slot-fallbackSlot);
+      if(dd<bestDist){bestDist=dd;best=i;}
+    });
+    next=best;
+  }
   state.wire=next;
   state.wireVisual=next;
   player.targetY=wires[next].y;
-  // レイアウト変更で既存電線の位置は動かさない。プレイヤーも現在の電線上に留める。
   if(force) player.y=wires[next].y;
-  else if(oldY!=null) player.y=oldY;
+  else if(oldY!=null && oldType===wires[next]?.type) player.y=oldY;
+  else player.y=wires[next].y;
 }
-
 const player={x:160,y:410,targetY:410,r:13,phase:0};
 
 function showMessage(text){const e=document.getElementById('message');e.textContent=text;e.style.opacity=1;clearTimeout(showMessage.timer);showMessage.timer=setTimeout(()=>e.style.opacity=0,1100)}
@@ -191,8 +207,20 @@ function virusSpacingOK(type,x,extraMin=220){
 }
 function adjacentWireTypes(a,b){
   if(a===b)return true;
-  const ia=wires.findIndex(w=>w.type===a), ib=wires.findIndex(w=>w.type===b);
-  return ia>=0 && ib>=0 && Math.abs(ia-ib)===1;
+  const wa=wires.find(w=>w.type===a), wb=wires.find(w=>w.type===b);
+  return !!wa && !!wb && Math.abs(wa.slot-wb.slot)===1;
+}
+function nextWireIndexByLane(dir){
+  const current=wires[state.wire];
+  if(!current)return state.wire;
+  const targetSlot=current.slot+dir;
+  // 空いているレーンを飛び越え、同じ方向で最初に存在する電線へ移動する。
+  const candidates=wires
+    .map((w,i)=>({w,i}))
+    .filter(({w})=>dir<0?w.slot<current.slot:w.slot>current.slot)
+    .sort((a,b)=>dir<0?b.w.slot-a.w.slot:a.w.slot-b.w.slot);
+  const next=candidates[0];
+  return next?next.i:state.wire;
 }
 function generateHazardsRange(startX,endX,reset=false){
   if(reset){state.viruses.length=0;state.energies.length=0;}
@@ -230,7 +258,7 @@ function generateHazardsRange(startX,endX,reset=false){
   state.energies.sort((a,b)=>a.x-b.x);
 }
 function generateViruses(){
-  // β2.27.7: ステージレイアウトに応じた電線構成。7枠の固定スペースを使用。
+  // β2.27.8: ステージレイアウトに応じた電線構成。7枠の固定スペースを使用。
   // 同じ電線だけでなく、隣り合う上下の電線同士も2目盛(220px)以上離す。
   generateHazardsRange(900,Math.min(state.worldW-1200,Math.floor(state.worldW/110)*110),true);
 }
@@ -541,14 +569,14 @@ function updateDesignated(dt){
 }
 function switchWire(dir){
   if(state.shockTimer>0 || !state.running)return;
-  const next=Math.max(0,Math.min(wires.length-1,state.wire+dir));
+  const next=nextWireIndexByLane(dir);
   if(next===state.wire)return;
   state.wire=next;
-  // 電線の切り替えは即時に確定し、トール自身は短い移動アニメーションで新しい電線へ移る。
+  // 隣接レーンが空いていても、その先の電線へ直接切り替えられる。
   player.targetY=wires[next].y;
   state.wireVisual=next;
   state.wirePulse=1;
-  showMessage(wires[next].label+' LINE');
+  showMessage('LANE '+(wires[next].slot+1)+' // '+wires[next].label);
 }
 function bindButton(id,key,fn){const e=document.getElementById(id);let pid=null;const down=ev=>{ev.preventDefault();pid=ev.pointerId;try{e.setPointerCapture(pid)}catch(_){}keys[key]=true;e.classList.add('on');if(fn)fn()};const up=ev=>{if(pid!==null&&ev.pointerId!==pid)return;ev.preventDefault();keys[key]=false;e.classList.remove('on');pid=null};e.addEventListener('pointerdown',down,{passive:false});e.addEventListener('pointerup',up,{passive:false});e.addEventListener('pointercancel',up,{passive:false});}
 bindButton('up','up',()=>switchWire(state.infectionType==='control'?1:-1));
@@ -827,65 +855,98 @@ function drawEnergy(e){
 function drawEnergies(){for(const e of state.energies)drawEnergy(e);}
 function drawParticles(){for(const p of state.particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle='#bffcff';ctx.fillRect(worldX(p.x),p.y,2,2)}ctx.globalAlpha=1}
 function drawStations(){
-  // β2.27.7：レーンは電線とは完全に別の背景要素。
-  // 常に画面左右端へ固定し、7本分の枠を表示する。
-  // サイズはβ2.27.6の50%。各枠の中央を電線のY位置に正確に合わせる。
-  // 電線追加の2秒前から、追加される電線の色を点滅させて予告する。
+  // β2.27.8：レーンは電線とは完全に別の背景要素。
+  // 画面左右端に常時固定し、上からレーン1〜7として扱う（番号は表示しない）。
   const laneCount=WIRE_SLOT_COUNT;
   const upcoming=[];
   const currentSpeed=Math.max(1,state.speed*speedProgress()*distanceAcceleration()*(wires[state.wire]?.speedMul||1));
 
   for(const add of STAGE_WIRE_ADDITIONS){
     const targetX=160+add.targetM*110;
-    const laneIndex=add.slot;
-    if(laneIndex<0 || laneIndex>=laneCount)continue;
-    if(targetX>player.x){
-      const seconds=(targetX-player.x)/currentSpeed;
-      if(seconds<=2){
-        const type= WIRE_TYPES[add.type] || WIRE_TYPES.CORE;
-        upcoming.push({laneIndex,glow:type.glow,seconds});
-      }
+    const seconds=(targetX-player.x)/currentSpeed;
+    if(seconds>0 && seconds<=2){
+      const type=WIRE_TYPES[add.type]||WIRE_TYPES.CORE;
+      upcoming.push({laneIndex:add.slot,kind:'add',glow:type.glow,seconds});
+    }
+  }
+  for(const rem of STAGE_WIRE_REMOVALS){
+    const targetX=160+rem.targetM*110;
+    const seconds=(targetX-player.x)/currentSpeed;
+    if(seconds>0 && seconds<=3){
+      upcoming.push({laneIndex:rem.slot,kind:'remove',seconds});
     }
   }
 
-  const laneW=23;
-  const laneH=32;
+  // β2.27.7の50%から70%へ。角型の機械フレーム＋回路端子で世界観に合わせる。
+  const laneW=32;
+  const laneH=45;
   const leftX=0;
   const rightX=W-laneW;
 
   for(let i=0;i<laneCount;i++){
-    // 電線描画と同じ座標変換を使ったY位置。
-    // render()側の translate(H*.25) + scale(.5) と一致する。
     const y=H*.25+WIRE_SLOT_Y[i]*.5;
     const notice=upcoming.find(u=>u.laneIndex===i);
-    const blinkOn=notice ? (Math.floor((state.t*4))%2===0) : false;
-    const lit=notice && blinkOn;
-    const color=notice?.glow || 'rgba(240,250,255,.92)';
-    const border=lit ? color : 'rgba(240,250,255,.92)';
-    const alpha=lit ? 1 : .92;
+    const blinkOn=Math.floor(state.t*5)%2===0;
+    const addLit=notice?.kind==='add' && blinkOn;
+    const removeDark=notice?.kind==='remove' && blinkOn;
 
     ctx.save();
-    ctx.globalAlpha=alpha;
-    ctx.shadowBlur=lit?16:0;
-    ctx.shadowColor=lit?color:'transparent';
-    ctx.strokeStyle=border;
-    ctx.lineWidth=lit?2:1.5;
+    ctx.lineJoin='miter';
+    ctx.lineCap='square';
 
-    // レーン本体。中央Yが電線の中心と一致する。
-    ctx.strokeRect(leftX+.5,y-laneH/2+.5,laneW-1,laneH-1);
-    ctx.strokeRect(rightX+.5,y-laneH/2+.5,laneW-1,laneH-1);
+    let stroke='rgba(215,246,250,.82)';
+    let width=1.5;
+    if(addLit){
+      stroke=notice.glow;
+      width=3.0;
+    }else if(notice?.kind==='add'){
+      stroke='rgba(190,236,242,.95)';
+      width=1.8;
+    }else if(removeDark){
+      stroke='rgba(0,0,0,.98)';
+      width=3.0;
+    }else if(notice?.kind==='remove'){
+      stroke='rgba(175,202,207,.62)';
+      width=1.2;
+    }
 
-    // 電線が通る中央位置を示す開口部。ここも追加予告時だけ色点滅。
-    ctx.lineWidth=lit?3:2;
-    ctx.beginPath();
-    ctx.moveTo(leftX,y);
-    ctx.lineTo(leftX+laneW,y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(rightX,y);
-    ctx.lineTo(W,y);
-    ctx.stroke();
+    ctx.strokeStyle=stroke;
+    ctx.lineWidth=width;
+    ctx.shadowBlur=addLit?24:0;
+    ctx.shadowColor=addLit?notice.glow:'transparent';
 
+    // 左右端に固定されたレーンフレーム。中央の切れ込みが電線の通過ポート。
+    function frame(x,flip){
+      ctx.beginPath();
+      if(!flip){
+        ctx.moveTo(x+7,y-laneH/2);ctx.lineTo(x+laneW,y-laneH/2);
+        ctx.lineTo(x+laneW,y+laneH/2);ctx.lineTo(x+7,y+laneH/2);
+        ctx.moveTo(x+7,y-laneH/2);ctx.lineTo(x,y-laneH/2+7);
+        ctx.lineTo(x,y+laneH/2-7);ctx.lineTo(x+7,y+laneH/2);
+      }else{
+        ctx.moveTo(x+laneW-7,y-laneH/2);ctx.lineTo(x,y-laneH/2);
+        ctx.lineTo(x,y+laneH/2);ctx.lineTo(x+laneW-7,y+laneH/2);
+        ctx.moveTo(x+laneW-7,y-laneH/2);ctx.lineTo(x+laneW,y-laneH/2+7);
+        ctx.lineTo(x+laneW,y+laneH/2-7);ctx.lineTo(x+laneW-7,y+laneH/2);
+      }
+      ctx.stroke();
+    }
+    frame(leftX,false);frame(rightX,true);
+
+    // 中央ポート：追加予告時だけ、追加される電線色で強く点滅。
+    ctx.lineWidth=addLit?4.5:1.8;
+    ctx.beginPath();ctx.moveTo(leftX,y);ctx.lineTo(leftX+laneW,y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(rightX,y);ctx.lineTo(W,y);ctx.stroke();
+
+    // 小さな端子を追加。
+    ctx.lineWidth=1;
+    ctx.globalAlpha=addLit?.95:.55;
+    for(const side of [leftX,rightX]){
+      const inner=side===leftX?side+6:side+laneW-6;
+      const dir=side===leftX?1:-1;
+      ctx.beginPath();ctx.moveTo(inner,y-laneH/2+6);ctx.lineTo(inner+dir*7,y-laneH/2+6);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(inner,y+laneH/2-6);ctx.lineTo(inner+dir*7,y+laneH/2-6);ctx.stroke();
+    }
     ctx.restore();
   }
 }
@@ -898,7 +959,7 @@ function render(){
   // レーンは画面固定の背景要素。ワールド変換の前に描画する。
   drawStations();
   ctx.save();
-  // β2.27.7：7本分の固定スペースを常に使うため、電線増減でズームを変更しない。
+  // β2.27.8：7本分の固定スペースを常に使うため、電線増減でズームを変更しない。
   const viewScale=.5;
   ctx.translate(W*.12,H*.25);ctx.scale(viewScale,viewScale);
   drawWireAdditions();
