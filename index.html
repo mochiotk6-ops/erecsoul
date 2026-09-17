@@ -120,14 +120,17 @@ const STAGE_WIRE_LAYOUTS=[
   // 100m：レーン2にUPPERを追加。既存の電線は一切移動しない。
   {until:200,types:['UPPER','CORE','LOWER','CHARGE','HIGH SPEED'],slots:[1,2,3,4,5]},
   // 200m：レーン4の普通の電線（LOWER）を削除。レーン5以降はそのままの位置。
-  {until:Infinity,types:['UPPER','CORE','CHARGE','HIGH SPEED'],slots:[1,2,4,5]}
+  {until:400,types:['UPPER','CORE','CHARGE','HIGH SPEED'],slots:[1,2,4,5]},
+  // 400m：レーン4（slot 3）に通常電線を追加。既存電線の位置は変更しない。
+  {until:Infinity,types:['UPPER','CORE','LOWER','CHARGE','HIGH SPEED'],slots:[1,2,3,4,5]}
 ];
 
 // 電線の追加・削除イベント。
 // 追加は2秒前、削除は3秒前からレーンで予告する。
 // 電線はイベント地点より十分手前からワールド上に存在する。
 const STAGE_WIRE_ADDITIONS=[
-  {type:'UPPER',targetM:100,slot:1,spawnAheadM:60}
+  {type:'UPPER',targetM:100,slot:1,spawnAheadM:60},
+  {type:'LOWER',targetM:400,slot:3,spawnAheadM:60}
 ];
 const STAGE_WIRE_REMOVALS=[
   {type:'LOWER',targetM:200,slot:4,warningSec:3}
@@ -878,8 +881,9 @@ function drawStations(){
   }
 
   // β2.27.7の50%から70%へ。角型の機械フレーム＋回路端子で世界観に合わせる。
-  const laneW=32;
-  const laneH=45;
+  // β2.27.10：レーンサイズを60%に縮小（β2.27.8の70%基準から比例縮小）。
+  const laneW=27;
+  const laneH=39;
   const leftX=0;
   const rightX=W-laneW;
 
