@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.28.3 // STAGE SELECT</title>
+<title>ELECTRIC SOUL β2.28.4 // STAGE SELECT</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -87,7 +87,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.28.3</div><div id="stageTitle">STAGE 0 // MAP 0-1</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.28.4</div><div id="stageTitle">STAGE 0 // MAP 0-1</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="infectionHud"><span id="infectionLabel">⚠ 充電不可</span><div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="designatedHud"><div id="designatedWarning">⚠️大電流</div><div id="designatedCount"></div></div><div id="message"></div><div id="busterBtn">BUSTER</div>
 <div id="controls"><div id="energyGaugeHud"><span class="egLabel" id="energyLabel">0/30</span><div id="energyGaugeTrack"><div id="energyGaugeFill"></div></div></div>
@@ -97,8 +97,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="stageSelect"><div class="stageLogo">ELECTRIC SOUL</div><div class="stageSelectSub">STAGE SELECT // β2.28.3</div><div class="stageList"><div class="stageBlock"><div class="stageName">STAGE 0</div><div class="mapRow"><button class="mapBtn" id="map01">①<span class="mapLabel">MAP 0-1</span></button><button class="mapBtn locked" disabled>②<span class="mapLabel">LOCKED</span></button><button class="mapBtn locked" disabled>③<span class="mapLabel">LOCKED</span></button></div></div></div></div><div id="start" style="display:none"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.28.3 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.28.3</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="stageSelect"><div class="stageLogo">ELECTRIC SOUL</div><div class="stageSelectSub">STAGE SELECT // β2.28.4</div><div class="stageList"><div class="stageBlock"><div class="stageName">STAGE 0</div><div class="mapRow"><button class="mapBtn" id="map01">①<span class="mapLabel">MAP 0-1</span></button><button class="mapBtn locked" disabled>②<span class="mapLabel">LOCKED</span></button><button class="mapBtn locked" disabled>③<span class="mapLabel">LOCKED</span></button></div></div></div></div><div id="start" style="display:none"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.28.4 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.28.4</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -260,7 +260,7 @@ function generateHazardsRange(startX,endX,reset=false){
   // ENERGYは1目盛ごとに5%。ウイルスの近傍には置かない。
   for(const type of types){
     for(let x=Math.ceil(startX/110)*110;x<endX;x+=110){
-      if(Math.random()>=0.05)continue;
+      if(Math.random()>=0.10)continue;
       const blocked=state.viruses.some(v=>v.laneType===type && Math.abs(v.x-x)<120);
       if(!blocked)state.energies.push({x,y:0,laneType:type,r:6.84,phase:Math.random()*Math.PI*2});
     }
@@ -476,7 +476,7 @@ function regenerateLaneHazards(type,startX,endX){
     }
   }
   for(let x=Math.ceil(startX/110)*110;x<endX;x+=110){
-    if(Math.random()>=0.05)continue;
+    if(Math.random()>=0.10)continue;
     const blocked=state.viruses.some(v=>v.laneType===type && Math.abs(v.x-x)<120);
     if(!blocked)state.energies.push({x,y:0,laneType:type,r:6.84,phase:Math.random()*Math.PI*2});
   }
@@ -877,6 +877,34 @@ function drawPlayer(){
   ctx.restore();
   ctx.shadowBlur=0;
   if(Math.random()<.35){ctx.fillStyle='#dfffff';ctx.fillRect(x-10+(Math.random()*20),y-15+(Math.random()*30),2,2)}
+  // BUSTER: barrier electric arcs
+  if (buster) {
+    ctx.save();
+    const t = performance.now() / 1000;
+    const cx = px, cy = py;
+    ctx.lineWidth = 2.2;
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = "#ffb000";
+    for (let k = 0; k < 7; k++) {
+      const a0 = t * 3.2 + k * (Math.PI * 2 / 7);
+      const a1 = a0 + 0.55 + Math.sin(t * 8 + k) * 0.12;
+      ctx.beginPath();
+      const r0 = 25 + 2 * Math.sin(t * 9 + k);
+      const r1 = 31 + 3 * Math.sin(t * 11 + k * 1.7);
+      ctx.moveTo(cx + Math.cos(a0) * r0, cy + Math.sin(a0) * r0);
+      const steps = 5;
+      for (let s = 1; s <= steps; s++) {
+        const p = s / steps;
+        const a = a0 + (a1 - a0) * p;
+        const r = r0 + (r1 - r0) * p;
+        const jitter = (Math.random() - 0.5) * 5;
+        ctx.lineTo(cx + Math.cos(a) * (r + jitter), cy + Math.sin(a) * (r + jitter));
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
 }
 function drawVirus(v){
   const y=entityY(v); if(y===null)return;
