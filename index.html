@@ -121,10 +121,11 @@ const STAGE_WIRE_LAYOUTS=[
   {until:Infinity,types:['UPPER','CORE','LOWER','CHARGE','HIGH SPEED'],slots:[1,2,3,4,5]}
 ];
 
-// 新しい電線の生成演出。targetM地点で水平部分が使用可能になる。
-// 生成自体はtargetMの60m手前で行い、そこから50mの斜め部分を背景として表示する。
+// 電線追加スケジュール。targetM地点で水平電線が追加される。
+// 電線自体はtargetMの60m手前までに内部生成しておく。
+// β2.27.5では斜めの電線演出は削除し、レーンの予告点灯だけを行う。
 const STAGE_WIRE_ADDITIONS=[
-  {type:'UPPER',targetM:100,slot:1,diagonalM:50,spawnAheadM:60}
+  {type:'UPPER',targetM:100,slot:1,spawnAheadM:60}
 ];
 
 const WIRE_TYPES={
@@ -646,43 +647,10 @@ function drawBackground(){
   ctx.fillStyle='rgba(83,220,240,.08)';ctx.font='bold 52px Arial';ctx.fillText('SECTOR 02',worldX(1600),170);ctx.font='bold 18px Arial';ctx.fillText('CONDUIT NETWORK // DYNAMIC',worldX(1670),195);
 }
 function drawWireAdditions(){
-  const d=distanceMeters();
-  for(const add of STAGE_WIRE_ADDITIONS){
-    const spawnM=add.targetM-add.spawnAheadM;
-    if(d<spawnM || d>=add.targetM)continue;
-    const targetX=160+add.targetM*110;
-    const startX=targetX-add.diagonalM*110;
-    const slotY=WIRE_SLOT_Y[add.slot];
-    // 斜め部分は追加される電線と同じデザイン。ただし背景扱いで、当たり判定も切替対象にもならない。
-    // 画面下端から、100m地点の水平電線へ向かって50m分の斜め線をつなぐ。
-    const wire=WIRE_TYPES[add.type];
-    const glow=(wire&&wire.glow)||WIRE_TYPES[add.type]?.glow||'#56eaff';
-    ctx.save();
-    ctx.lineCap='round';
-    ctx.shadowBlur=24;
-    ctx.shadowColor=glow;
-    ctx.strokeStyle=glow;
-    ctx.lineWidth=13;
-    ctx.beginPath();
-    ctx.moveTo(worldX(startX),H+4);
-    ctx.lineTo(worldX(targetX),slotY);
-    ctx.stroke();
-    ctx.shadowBlur=0;
-    ctx.lineWidth=5;
-    ctx.strokeStyle=glow;
-    ctx.beginPath();
-    ctx.moveTo(worldX(startX),H+4);
-    ctx.lineTo(worldX(targetX),slotY);
-    ctx.stroke();
-    ctx.lineWidth=1;
-    ctx.strokeStyle='#f0fbff';
-    ctx.beginPath();
-    ctx.moveTo(worldX(startX),H+4);
-    ctx.lineTo(worldX(targetX),slotY);
-    ctx.stroke();
-    ctx.restore();
-  }
+  // β2.27.5：斜めの電線演出は削除。
+  // 電線はあらかじめ生成され、追加時は水平電線として出現する。
 }
+
 function drawWire(y,glow,label,i){
   const designated=(state.designated.phase==='active'||state.designated.phase==='penalty') && i===state.designated.lane;
   const blackout=state.designated.phase==='penalty' && i!==state.designated.lane;
@@ -859,11 +827,43 @@ function drawEnergy(e){
 function drawEnergies(){for(const e of state.energies)drawEnergy(e);}
 function drawParticles(){for(const p of state.particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle='#bffcff';ctx.fillRect(worldX(p.x),p.y,2,2)}ctx.globalAlpha=1}
 function drawStations(){
-  for(let i=0;i<wires.length;i++){
-    const y=wireY(i);const sx=worldX(0);ctx.fillStyle='#09151b';ctx.fillRect(sx,y-32,46,64);ctx.strokeStyle='#4ed9eb';ctx.strokeRect(sx+.5,y-31.5,45,63);ctx.fillStyle='#5ceaff';ctx.fillRect(sx+10,y-5,26,10);
-    const ex=worldX(state.worldW-42);ctx.fillStyle='#09151b';ctx.fillRect(ex,y-32,46,64);ctx.strokeStyle='#4ed9eb';ctx.strokeRect(ex+.5,y-31.5,45,63);ctx.fillStyle='#7df3ff';ctx.fillRect(ex+8,y-17,30,5);ctx.fillRect(ex+8,y-4,30,5);ctx.fillRect(ex+8,y+9,30,5);
+  // レーン：7本分の固定位置を常に表示。電線の有無に関係なく左右に白い枠を置く。
+  // 新しい電線の追加2秒前だけ、その電線色で点灯し、追加後は白へ戻る。
+  const laneCount=WIRE_SLOT_COUNT;
+  const upcoming=[];
+  const currentSpeed=Math.max(1,state.speed*speedProgress()*distanceAcceleration()*(wires[state.wire]?.speedMul||1));
+  for(const add of STAGE_WIRE_ADDITIONS){
+    const targetX=160+add.targetM*110;
+    const laneIndex=add.slot;
+    if(laneIndex<0 || laneIndex>=laneCount)continue;
+    if(targetX>player.x){
+      const seconds=(targetX-player.x)/currentSpeed;
+      if(seconds<=2)upcoming.push({laneIndex,glow:(WIRE_TYPES[add.type]||WIRE_TYPES.CORE).glow});
+    }
+  }
+  for(let i=0;i<laneCount;i++){
+    const y=WIRE_SLOT_Y[i];
+    let lit=null;
+    for(const u of upcoming)if(u.laneIndex===i)lit=u.glow;
+    const border=lit||'rgba(240,250,255,.92)';
+    const fill='rgba(9,21,27,.72)';
+    const inner=lit||'rgba(245,253,255,.96)';
+    const sx=worldX(0);
+    ctx.save();
+    ctx.shadowBlur=lit?18:0;
+    ctx.shadowColor=lit||'transparent';
+    ctx.fillStyle=fill;ctx.fillRect(sx,y-32,46,64);
+    ctx.strokeStyle=border;ctx.lineWidth=lit?2:1.5;ctx.strokeRect(sx+.5,y-31.5,45,63);
+    ctx.fillStyle=inner;ctx.fillRect(sx+10,y-5,26,10);
+    const ex=worldX(state.worldW-42);
+    ctx.fillStyle=fill;ctx.fillRect(ex,y-32,46,64);
+    ctx.strokeStyle=border;ctx.lineWidth=lit?2:1.5;ctx.strokeRect(ex+.5,y-31.5,45,63);
+    ctx.fillStyle=inner;
+    ctx.fillRect(ex+8,y-17,30,5);ctx.fillRect(ex+8,y-4,30,5);ctx.fillRect(ex+8,y+9,30,5);
+    ctx.restore();
   }
 }
+
 function drawSwitchEffect(){if(state.wirePulse<=0)return;const y=wireY(state.wireVisual),x=worldX(player.x);ctx.globalAlpha=state.wirePulse;ctx.strokeStyle='#eaffff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,25+(1-state.wirePulse)*30,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1}
 function drawGoal(){const x=worldX(state.worldW-220);for(let i=0;i<5;i++){ctx.fillStyle='rgba(85,232,255,'+(0.15+i*.08)+')';ctx.fillRect(x+i*12,150-i*8,3,H-300+i*16)}ctx.fillStyle='#cfffff';ctx.font='bold 13px Arial';ctx.fillText('EXIT',x+18,128);ctx.font='10px Arial';ctx.fillStyle='#74b6c0';ctx.fillText('RUN TO THE END',x+18,145)}
 function render(){
