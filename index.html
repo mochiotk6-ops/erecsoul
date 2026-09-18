@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>ELECTRIC SOUL β2.28.4 // STAGE SELECT</title>
+<title>ELECTRIC SOUL β2.28.5 // STAGE SELECT</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070a;font-family:Arial,"Noto Sans JP",sans-serif;color:#dffcff;touch-action:none}
@@ -87,7 +87,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div id="title">ELECTRIC SOUL // β2.28.4</div><div id="stageTitle">STAGE 0 // MAP 0-1</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
+<div id="hud"><div id="title">ELECTRIC SOUL // β2.28.5</div><div id="stageTitle">STAGE 0 // MAP 0-1</div><div id="status">CURRENT // AUTO RUN // NO GOAL</div></div>
 <div id="batteryHud"><div class="batteryBox"><div class="batteryBody"><span class="batteryCell" id="bat0"></span><span class="batteryCell" id="bat1"></span><span class="batteryCell" id="bat2"></span></div><div class="batteryTip"></div></div><div class="chargeLabel">CHARGE</div><div class="chargeTrack"><div id="chargeFill"></div></div></div>
 <div id="infectionHud"><span id="infectionLabel">⚠ 充電不可</span><div id="infectionGauge"><div id="infectionGaugeFill"></div></div></div><div id="designatedHud"><div id="designatedWarning">⚠️大電流</div><div id="designatedCount"></div></div><div id="message"></div><div id="busterBtn">BUSTER</div>
 <div id="controls"><div id="energyGaugeHud"><span class="egLabel" id="energyLabel">0/30</span><div id="energyGaugeTrack"><div id="energyGaugeFill"></div></div></div>
@@ -97,8 +97,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelate
   </div>
   <div id="hint">▲ ▼　電線を切り替える</div>
 </div>
-<div id="stageSelect"><div class="stageLogo">ELECTRIC SOUL</div><div class="stageSelectSub">STAGE SELECT // β2.28.4</div><div class="stageList"><div class="stageBlock"><div class="stageName">STAGE 0</div><div class="mapRow"><button class="mapBtn" id="map01">①<span class="mapLabel">MAP 0-1</span></button><button class="mapBtn locked" disabled>②<span class="mapLabel">LOCKED</span></button><button class="mapBtn locked" disabled>③<span class="mapLabel">LOCKED</span></button></div></div></div></div><div id="start" style="display:none"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.28.4 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
-<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.28.4</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
+<div id="stageSelect"><div class="stageLogo">ELECTRIC SOUL</div><div class="stageSelectSub">STAGE SELECT // β2.28.5</div><div class="stageList"><div class="stageBlock"><div class="stageName">STAGE 0</div><div class="mapRow"><button class="mapBtn" id="map01">①<span class="mapLabel">MAP 0-1</span></button><button class="mapBtn locked" disabled>②<span class="mapLabel">LOCKED</span></button><button class="mapBtn locked" disabled>③<span class="mapLabel">LOCKED</span></button></div></div></div></div><div id="start" style="display:none"><div class="logo">ELECTRIC SOUL</div><div class="sub">β2.28.5 // ELECTRIC RUNNER</div><button class="startBtn" id="startBtn">START</button></div>
+<div id="clear"><div class="clearTitle">STAGE CLEAR</div><div class="clearSub">ELECTRIC SOUL // β2.28.5</div><button class="startBtn" id="restartBtn">もう一度走る</button></div>
 <div id="gameOver"><div class="gameOverTitle">GAME OVER</div><div class="gameOverSub">BATTERY EMPTY // RETRY FROM START</div><div id="gameOverDistance" class="gameOverDistance">0 m</div><button class="startBtn" id="gameOverBtn">最初からリトライ</button></div>
 <script>
 'use strict';
@@ -108,7 +108,7 @@ let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,2);
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);canvas.width=Math.floor(W*DPR);canvas.height=Math.floor(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0)}
 addEventListener('resize',resize);resize();
 
-const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:850,worldW:102000,particles:[],sparks:[],battery:3,charge:0,energyCollected:0,busterCharge:0,busterActive:0,busterMax:5,damageTimer:0,shake:0,viruses:[],energies:[],infectionTimer:0,infectionMax:0,infectionFade:0,infectionType:'',designated:{phase:'idle',targetX:null,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0},shockTimer:0,shockMax:0};
+const state={running:false,clear:false,t:0,cam:0,last:0,wire:1,wireVisual:1,wirePulse:0,speed:850,worldW:102000,particles:[],sparks:[],battery:3,charge:0,energyCollected:0,busterCharge:0,busterActive:0,busterMax:5,busterEndTimer:0,damageTimer:0,shake:0,viruses:[],energies:[],infectionTimer:0,infectionMax:0,infectionFade:0,infectionType:'',designated:{phase:'idle',targetX:null,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0},shockTimer:0,shockMax:0};
 const keys={up:false,down:false};
 // β2.27.8: 電線は最大7枠の固定スペース内で増減する。
 // ここを書き換えるだけで、距離ごとの電線構成を自由に設計できる。
@@ -377,7 +377,7 @@ function damage(red=false){
   }
 }
 function checkVirusCollision(){
-  if(state.damageTimer>0)return;
+  if(state.damageTimer>0||state.busterEndTimer>0)return;
   for(const v of state.viruses){
     const vy=entityY(v);
     if(vy===null)continue;
@@ -407,6 +407,7 @@ function updateEnergyGauge(){
 }
 function activateBuster(){
   if(!state.running||state.busterActive>0||state.busterCharge<30)return;
+  state.busterEndTimer=0;
   state.busterActive=state.busterMax;
   state.busterCharge=30;
   updateEnergyGauge();
@@ -441,7 +442,7 @@ function checkEnergyCollection(){
   }
 }
 
-function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.energyCollected=0;state.busterCharge=30;state.busterActive=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionMax=0;state.infectionFade=0;state.infectionType='';state.shockTimer=0;state.shockMax=0;state.designated={phase:'idle',targetX:160+10*110,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0};player.x=160;player.phase=0;currentLayoutKey='';applyStageWireLayout(true);player.y=wires[state.wire].y;player.targetY=player.y;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();updateEnergyGauge();document.getElementById('start').style.display='none';document.getElementById('stageSelect').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('infectionHud').style.display='none';document.getElementById('infectionHud').style.opacity='1';document.getElementById('infectionHud').classList.remove('infectionFlash');document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';document.getElementById('infectionLabel').textContent='⚠ 充電不可';document.getElementById('designatedHud').style.display='none';document.getElementById('designatedWarning').className='';document.getElementById('designatedCount').className='';document.getElementById('designatedCount').textContent='';document.getElementById('gameOverDistance').textContent='0 m';showMessage(wires.length+'本の電線 // RUN START')}
+function reset(){state.running=true;state.clear=false;state.t=0;state.cam=0;state.wire=1;state.wireVisual=1;state.wirePulse=0;state.battery=3;state.charge=0;state.energyCollected=0;state.busterCharge=30;state.busterActive=0;state.busterEndTimer=0;state.damageTimer=0;state.shake=0;state.infectionTimer=0;state.infectionMax=0;state.infectionFade=0;state.infectionType='';state.shockTimer=0;state.shockMax=0;state.designated={phase:'idle',targetX:160+10*110,nextM:10,lane:-1,timer:0,maxTime:0,elapsed:0,penaltyTimer:0};player.x=160;player.phase=0;currentLayoutKey='';applyStageWireLayout(true);player.y=wires[state.wire].y;player.targetY=player.y;state.particles.length=0;state.sparks.length=0;generateViruses();updateBatteryHud();updateEnergyGauge();document.getElementById('start').style.display='none';document.getElementById('stageSelect').style.display='none';document.getElementById('clear').style.display='none';document.getElementById('gameOver').style.display='none';document.getElementById('infectionHud').style.display='none';document.getElementById('infectionHud').style.opacity='1';document.getElementById('infectionHud').classList.remove('infectionFlash');document.getElementById('infectionGauge').style.display='none';document.getElementById('infectionGaugeFill').style.width='0%';document.getElementById('infectionLabel').textContent='⚠ 充電不可';document.getElementById('designatedHud').style.display='none';document.getElementById('designatedWarning').className='';document.getElementById('designatedCount').className='';document.getElementById('designatedCount').textContent='';document.getElementById('gameOverDistance').textContent='0 m';showMessage(wires.length+'本の電線 // RUN START')}
 function clearDesignatedHazards(){
   if(state.designated.lane<0)return;
   const targetType=wires[state.designated.lane]?.type;
@@ -670,6 +671,7 @@ function update(dt){
     return;
   }
   if(state.damageTimer>0)state.damageTimer=Math.max(0,state.damageTimer-dt);
+  if(state.busterEndTimer>0)state.busterEndTimer=Math.max(0,state.busterEndTimer-dt);
   if(state.infectionTimer>0){
     state.infectionTimer=Math.max(0,state.infectionTimer-dt);
     const ig=document.getElementById('infectionGaugeFill');
@@ -681,7 +683,12 @@ function update(dt){
     state.busterActive=Math.max(0,state.busterActive-dt);
     state.busterCharge=Math.max(0,30*(state.busterActive/state.busterMax));
     updateEnergyGauge();
-    if(state.busterActive===0){state.busterCharge=0;updateEnergyGauge();showMessage('VIRUS BUSTER END');}
+    if(state.busterActive===0){
+      state.busterCharge=0;
+      state.busterEndTimer=0.5;
+      updateEnergyGauge();
+      showMessage('VIRUS BUSTER END');
+    }
   }
   state.shake=Math.max(0,state.shake-dt);
   // 100mで、元々100m地点にあるUPPER電線を見せる演出を開始する。
@@ -689,7 +696,7 @@ function update(dt){
   applyStageWireLayout();
   // β2.23.8: 視界不良中もトールの速度は通常の100%。電線固有の速度補正は維持する。
   const visionSpeedMul=(state.infectionTimer>0 && state.infectionType==='vision')?1:1;
-  const busterSpeedMul=state.busterActive>0?1.10:1;
+  const busterSpeedMul=state.busterActive>0?1.60:1;
   const moveSpeed=state.speed*speedProgress()*distanceAcceleration()*(wires[state.wire].speedMul||1)*visionSpeedMul*busterSpeedMul; player.x+=moveSpeed*dt;
   updateDesignated(dt);
   if(!state.running)return;
@@ -820,7 +827,7 @@ function drawWire(y,glow,label,i){
 }
 function drawPlayer(){
   const y=player.y;const x=worldX(player.x);
-  if(state.damageTimer>0 && Math.floor(state.damageTimer*12)%2===0)return;
+  if((state.damageTimer>0 || state.busterEndTimer>0) && Math.floor((state.damageTimer>0?state.damageTimer:state.busterEndTimer)*12)%2===0)return;
   const infected=state.infectionTimer>0;
   const buster=state.busterActive>0;
   const shocked=state.shockTimer>0;
@@ -881,7 +888,7 @@ function drawPlayer(){
   if (buster) {
     ctx.save();
     const t = performance.now() / 1000;
-    const cx = px, cy = py;
+    const cx = x, cy = y;
     ctx.lineWidth = 2.2;
     ctx.globalAlpha = 0.9;
     ctx.strokeStyle = "#ffb000";
